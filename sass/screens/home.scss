@@ -1,0 +1,52 @@
+@import '../colors';
+@import '../mixins';
+
+.home-screen {
+  display: flex;
+  flex-direction: column;
+  padding: 1.4rem;
+  background:
+    radial-gradient(rgba(13, 236, 240, .2), rgba(240, 13, 230, .1)),
+    linear-gradient(rgba(42, 48, 90, .95), rgba(0, 0, 0, .98));
+
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    transform-origin: top center;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url(images/bg.png);
+    backface-visibility: hidden;
+    animation: home-page-appear 1s both;
+  }
+
+  > .home-header {
+    flex: 1;
+  }
+
+  > .error {
+    @include fixed($height: 3.25rem);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(color-get(error), .8);
+    color: lighten(color-get(error), 25);
+    font-size: 1.2rem;
+    font-weight: 400;
+  }
+}
+
+@keyframes home-page-appear {
+  from {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

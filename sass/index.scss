@@ -7,9 +7,9 @@
 @import 'fonts';
 @import 'normalize';
 
-/** Pages */
-@import 'pages/welcome';
-@import 'pages/ingame';
+/** Screens */
+@import 'screens/home';
+@import 'screens/track';
 
 /** Views */
 @import 'views/ennemy-item';

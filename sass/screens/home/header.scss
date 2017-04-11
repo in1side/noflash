@@ -1,0 +1,54 @@
+.home-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  > .logo {
+    fill: none;
+    stroke: #ffb72c;
+    stroke-width: 3px;
+    stroke-dasharray: 390;
+    backface-visibility: hidden;
+
+    .-ready & {
+      animation: home-header-logo-appear 800ms linear both 600ms;
+    }
+  }
+
+  > .title {
+    margin-top: 1.2rem;
+    font-size: 4.8rem;
+    font-weight: 100;
+    color: #fff;
+    backface-visibility: hidden;
+
+    .-ready & {
+      animation: home-header-title-appear 800ms both 800ms;
+    }
+  }
+}
+
+@keyframes home-header-logo-appear {
+  from {
+    stroke-dashoffset: 390;
+    opacity: 0;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes home-header-title-appear {
+  from {
+    transform: translateY(1rem) scale(1.2);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

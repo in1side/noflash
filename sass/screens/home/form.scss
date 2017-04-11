@@ -1,10 +1,10 @@
-@import '../colors';
+@import '../../colors';
 
 .home-form {
   opacity: 0;
 
   .-ready & {
-    animation: welcome-form-appear 1s forwards 1.2s;
+    animation: home-form-appear 1s forwards 1.2s;
   }
 
   > .fieldset {
@@ -55,18 +55,18 @@
       width: 4.5rem;
       background: transparent;
       color: transparent;
-      animation: welcome-form-loading 1s linear infinite;
+      animation: home-form-loading 1s linear infinite;
     }
   }
 }
 
-@keyframes welcome-form-loading {
+@keyframes home-form-loading {
   to {
     transform: rotate(360deg);
   }
 }
 
-@keyframes welcome-form-appear {
+@keyframes home-form-appear {
   to {
     transform: none;
     opacity: 1;
