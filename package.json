@@ -26,7 +26,7 @@
     "choo-log": "5.0.0",
     "classnames": "^2.2.5",
     "closest": "0.0.1",
-    "cordova-lib": "^6.3.1",
+    "cordova-lib": "^7.0.0",
     "fastclick": "^1.0.6",
     "fly": "^2.0.0",
     "fly-esnext": "^2.0.0",
