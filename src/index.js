@@ -8,7 +8,7 @@ app({
   state,
   actions,
   view: {
-    '/': HomeScreen,
+    '*': HomeScreen,
     '/track': TrackScreen
   },
   root: document.querySelector('main'),

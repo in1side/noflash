@@ -170,11 +170,11 @@ function app(app) {
 
       if (typeof value !== "function") {
         if (value) {
-          if (name !== 'xlink:href') {
-            element.setAttribute(name, value)
+          if (name === 'xlink:href') {
+            element.setAttributeNS("http://www.w3.org/1999/xlink", "href", value)
           }
           else {
-            element.setAttributeNS('http://www.w3.org/1999/xlink', name, value)
+            element.setAttribute(name, value)
           }
         } else {
           element.removeAttribute(name)
@@ -757,6 +757,11 @@ function clearAll() {
 	return localStorage().clear()
 }
 
+// oldFF-globalStorage provides storage for Firefox
+// versions 6 and 7, where no localStorage, etc
+// is available.
+
+
 var Global$2 = __moduleExports$1.Global
 
 var __moduleExports$4 = {
@@ -794,6 +799,11 @@ function clearAll$1() {
 		delete globalStorage[key]
 	})
 }
+
+// oldIE-userDataStorage provides storage for Internet Explorer
+// versions 6 and 7, where no localStorage, sessionStorage, etc
+// is available.
+
 
 var Global$3 = __moduleExports$1.Global
 
@@ -917,6 +927,11 @@ function _makeIEStorageElFunction() {
 		return
 	}
 }
+
+// cookieStorage is useful Safari private browser mode, where localStorage
+// doesn't work but cookies do. This implementation is adopted from
+// https://developer.mozilla.org/en-US/docs/Web/API/Storage/LocalStorage
+
 
 var Global$4 = __moduleExports$1.Global
 var trim$1 = __moduleExports$1.trim
@@ -7804,7 +7819,7 @@ var Cooldown = function (spell) {
 
 var Spell = function (spell, actions) { return html(["\n<li class=\"spell-item ", "\"\n  onclick=", ">\n  ", "\n  <svg class=\"icon\">\n    <use xlink:href=\"#svg-", "\">\n  </svg>\n</li>\n"], classVariants$2(spell), function (e) { return handleClick$1(e, spell, actions); }, 'cooldown' === spell.state ? Cooldown(spell) : '', spell.id); }
 
-var SpellList = List(Spell, { className: 'spell-list' })
+var SpellList = List(Spell, { className: 'spells' })
 
 var handleClick = function (e, ennemy, actions) {
   actions.game.toggleFocus(ennemy)
@@ -7813,9 +7828,9 @@ var handleClick = function (e, ennemy, actions) {
 var classVariants$1 = function (ennemy) { return index$1(( obj = {}, obj["-focused"] = ennemy.focused, obj ))
   var obj;; }
 
-var Ennemy = function (ennemy, actions) { return html(["\n<li class=\"ennemy-item ", "\"\n  onclick=", ">\n  <div class=\"ennemy-meta\">\n    <h2 class=\"champion\">", "</h2>\n  </div>\n  ", "\n</li>\n"], classVariants$1(ennemy), function (e) { return handleClick(e, ennemy, actions); }, ennemy.champion.name, SpellList(ennemy.spells, actions)); }
+var Ennemy = function (ennemy, actions) { return html(["\n<li class=\"ennemy-item ", "\"\n  onclick=", ">\n  <div class=\"meta\">\n    <h2 class=\"champion\">", "</h2>\n  </div>\n  ", "\n</li>\n"], classVariants$1(ennemy), function (e) { return handleClick(e, ennemy, actions); }, ennemy.champion.name, SpellList(ennemy.spells, actions)); }
 
-var EnnemyList = List(Ennemy, { className: 'ennemy-list' })
+var EnnemyList = List(Ennemy, { className: 'ennemies' })
 
 var TrackScreen = function (ref, actions) {
   var game = ref.game;
@@ -7827,7 +7842,7 @@ app({
   state: state,
   actions: actions,
   view: {
-    '/': HomeScreen,
+    '*': HomeScreen,
     '/track': TrackScreen
   },
   root: document.querySelector('main'),

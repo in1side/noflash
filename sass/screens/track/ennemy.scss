@@ -24,11 +24,45 @@
     opacity: .8;
   }
 
-  > .ennemy-meta {
+  > .meta {
+    display: flex;
+    overflow: hidden;
+    flex-direction: column;
+    justify-content: center;
+
     @include variant(dragging) {
       .champion {
         color: #000;
       }
+    }
+  }
+
+  > .meta > .champion {
+    font-size: 1.4rem;
+    line-height: 1;
+    color: color-get(text);
+  }
+
+  > .spells {
+    display: flex;
+    align-items: center;
+    margin-right: -1rem;
+
+    @include state(focused) {
+      margin-right: 0;
+      padding: 1rem 0;
+    }
+  }
+
+  > .spells > .spell-item {
+    margin: 0 1.2rem;
+    width: 3.6rem;
+    height: 3.6rem;
+
+    @include state(focused) {
+      margin: 0 2.4rem;
+      width: 5rem;
+      height: 5rem;
     }
   }
 }

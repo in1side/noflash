@@ -1,3 +1,6 @@
+@import 'track/ennemy';
+@import 'track/spell';
+
 .track-screen {
   display: flex;
   flex-direction: column;
@@ -6,7 +9,17 @@
     linear-gradient(-45deg, color-get(background1), rgba(color-get(background2), .95)),
     url(images/bg.png);
 
-  > .ennemy-list {
+  > .ennemies {
+    display: flex;
+    flex-direction: column;
     flex: 1;
+  }
+
+  > .ennemies > .ennemy-item {
+    flex: 1;
+
+    @include state(focused, true) {
+      flex: 3;
+    }
   }
 }
