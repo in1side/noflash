@@ -3,7 +3,7 @@
 .home-form {
   opacity: 0;
 
-  .-ready & {
+  @include nested-state(ready) {
     animation: home-form-appear 1s forwards 1.2s;
   }
 
@@ -47,7 +47,7 @@
     text-transform: uppercase;
     color: desaturate(darken(color-get(primary), 30), 0);
 
-    .home-form.-loading & {
+    @include state(loading) {
       border-radius: 50%;
       border: 3px solid transparent;
       border-top-color: color-get(primary);

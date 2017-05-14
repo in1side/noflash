@@ -148,7 +148,7 @@ select {
     font-size: 1.6rem;
     text-transform: uppercase;
     color: #926000; }
-    .home-form.-loading .home-form > .submit {
+    .-loading.home-form > .submit {
       border-radius: 50%;
       border: 3px solid transparent;
       border-top-color: #ffb72c;
