@@ -7281,6 +7281,31 @@ var spellAudio = new Audio('sounds/spell.ogg')
 var intervalId = null
 var numCooldowns = 0
 
+var decrementer = function (amount, uid) {
+  if ( uid === void 0 ) uid = null;
+
+  return function (spell) {
+  if ('cooldown' !== spell.state) { return spell }
+  if (uid && spell.uid !== uid) { return spell }
+
+  spell.cooldown -= amount
+
+  if (spell.cooldown <= 0) {
+    spell.cooldown = 0
+    spell.state = 'available'
+
+    numCooldowns--
+    if (0 === numCooldowns) {
+      clearInterval(intervalId)
+    }
+
+    spellAudio.play()
+  }
+
+  return spell
+};
+}
+
 var game$1 = {
   update: function (state, actions, game) { return (Object.assign({}, state,
     {game: Object.assign({}, state.game,
@@ -7312,25 +7337,7 @@ var game$1 = {
 
     if (null === intervalId) {
       intervalId = setInterval(function () {
-        actions.game.updateSpell(function (spell) {
-          if ('cooldown' !== spell.state) { return spell }
-
-          spell.cooldown--
-
-          if (spell.cooldown <= 0) {
-            spell.cooldown = 0
-            spell.state = 'available'
-
-            numCooldowns--
-            if (0 === numCooldowns) {
-              clearInterval(intervalId)
-            }
-
-            spellAudio.play()
-          }
-
-          return spell
-        })
+        actions.game.updateSpell(decrementer(1))
       }, 1000)
     }
   },
@@ -7360,16 +7367,7 @@ var game$1 = {
     var uid = ref.spell.uid;
     var amount = ref.amount;
 
-    actions.game.updateSpell(function (spell) {
-      if (spell.uid === uid) {
-        if ('cooldown' !== spell.state) { return spell }
-
-        return Object.assign({}, spell,
-          {cooldown: Math.max(0, spell.cooldown - amount)})
-      }
-
-      return spell
-    })
+    actions.game.updateSpell(decrementer(10, uid))
   },
 
   toggleFocus: function (state, actions, ref) {

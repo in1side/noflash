@@ -41,6 +41,27 @@ const spellAudio = new Audio('sounds/spell.ogg')
 let intervalId = null
 let numCooldowns = 0
 
+const decrementer = (amount, uid = null) => (spell) => {
+  if ('cooldown' !== spell.state) return spell
+  if (uid && spell.uid !== uid) return spell
+
+  spell.cooldown -= amount
+
+  if (spell.cooldown <= 0) {
+    spell.cooldown = 0
+    spell.state = 'available'
+
+    numCooldowns--
+    if (0 === numCooldowns) {
+      clearInterval(intervalId)
+    }
+
+    spellAudio.play()
+  }
+
+  return spell
+}
+
 export const game = {
   update: (state, actions, game) => ({
     ...state,
@@ -82,25 +103,7 @@ export const game = {
   startTimer: ({ game }, actions) => {
     if (null === intervalId) {
       intervalId = setInterval(() => {
-        actions.game.updateSpell(spell => {
-          if ('cooldown' !== spell.state) return spell
-
-          spell.cooldown--
-
-          if (spell.cooldown <= 0) {
-            spell.cooldown = 0
-            spell.state = 'available'
-
-            numCooldowns--
-            if (0 === numCooldowns) {
-              clearInterval(intervalId)
-            }
-
-            spellAudio.play()
-          }
-
-          return spell
-        })
+        actions.game.updateSpell(decrementer(1))
       }, 1000)
     }
   },
@@ -126,18 +129,7 @@ export const game = {
   },
 
   decrementCooldown: (state, actions, { spell: { uid }, amount }) => {
-    actions.game.updateSpell(spell => {
-      if (spell.uid === uid) {
-        if ('cooldown' !== spell.state) return spell
-
-        return {
-          ...spell,
-          cooldown: Math.max(0, spell.cooldown - amount)
-        }
-      }
-
-      return spell
-    })
+    actions.game.updateSpell(decrementer(10, uid))
   },
 
   toggleFocus: (state, actions, { uid }) => {
