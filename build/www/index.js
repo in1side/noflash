@@ -170,12 +170,7 @@ function app(app) {
 
       if (typeof value !== "function") {
         if (value) {
-          if (name === 'xlink:href') {
-            element.setAttributeNS("http://www.w3.org/1999/xlink", "href", value)
-          }
-          else {
-            element.setAttribute(name, value)
-          }
+          element.setAttribute(name, value)
         } else {
           element.removeAttribute(name)
         }
@@ -757,11 +752,6 @@ function clearAll() {
 	return localStorage().clear()
 }
 
-// oldFF-globalStorage provides storage for Firefox
-// versions 6 and 7, where no localStorage, etc
-// is available.
-
-
 var Global$2 = __moduleExports$1.Global
 
 var __moduleExports$4 = {
@@ -799,11 +789,6 @@ function clearAll$1() {
 		delete globalStorage[key]
 	})
 }
-
-// oldIE-userDataStorage provides storage for Internet Explorer
-// versions 6 and 7, where no localStorage, sessionStorage, etc
-// is available.
-
 
 var Global$3 = __moduleExports$1.Global
 
@@ -927,11 +912,6 @@ function _makeIEStorageElFunction() {
 		return
 	}
 }
-
-// cookieStorage is useful Safari private browser mode, where localStorage
-// doesn't work but cookies do. This implementation is adopted from
-// https://developer.mozilla.org/en-US/docs/Web/API/Storage/LocalStorage
-
 
 var Global$4 = __moduleExports$1.Global
 var trim$1 = __moduleExports$1.trim
@@ -7374,6 +7354,17 @@ var game$1 = {
     actions.game.startTimer()
   },
 
+  updateCooldown: function (state, actions, ref) {
+    var uid = ref.uid;
+
+    actions.game.updateSpell(function (spell) {
+      if (spell.uid === uid) {
+        return Object.assign({}, spell,
+          {cooldown: spell.cooldown - 10})
+      }
+    })
+  },
+
   toggleFocus: function (state, actions, ref) {
     var uid = ref.uid;
 
@@ -7701,7 +7692,13 @@ function selfClosing (tag) { return closeRE.test(tag) }
 
 var html = index(h, { attrToProp: false })
 
-var HomeHeader = function () { return html(["\n<div class=\"home-header\">\n  <svg class=\"logo\" width=\"96px\" height=\"141px\">\n    <use xlink:href=\"#icon-logo\">\n  </svg>\n  <h1 class=\"title\">noflash</h1>\n</div>\n"]); }
+var Use = function (ref) {
+	var href = ref.href;
+
+	return html(["\n<use oncreate=", ">\n"], function (e) { return e.setAttributeNS('http://www.w3.org/1999/xlink', 'href', href); });
+}
+
+var HomeHeader = function () { return html(["\n<div class=\"home-header\">\n  <svg class=\"logo\" width=\"96px\" height=\"141px\">\n    ", "\n  </svg>\n  <h1 class=\"title\">noflash</h1>\n</div>\n"], Use({ href: '#icon-logo' })); }
 
 var index$1 = createCommonjsModule(function (module) {
 /*!
@@ -7798,7 +7795,10 @@ var List = function (component, ref) {
 var handleClick$1 = function (e, spell, actions) {
   e.stopPropagation()
 
-  if ('cooldown' !== spell.state) {
+  if ('cooldown' === spell.state) {
+    actions.game.startCooldown(spell)
+  }
+  else {
     actions.game.startCooldown(spell)
   }
 }
@@ -7817,7 +7817,7 @@ var Cooldown = function (spell) {
   return html(["\n  <svg class=\"cooldown\"\n    viewBox=\"-5 -5 110 110\">\n    <g transform=", "\n      stroke-linecap=\"round\"\n      vector-effect=\"non-scaling-stroke\">\n      <circle class=\"progress-bg\" cx=\"0\" cy=\"0\" r=\"50\" />\n      <path class=\"progress\" d=", "></path>\n    </g>\n  </svg>\n  "], ("translate(" + r + ", " + r + ")"), ("M 0 " + (-r) + " A " + r + " " + r + " 1 " + m + " 1 " + x + " " + y))
 }
 
-var Spell = function (spell, actions) { return html(["\n<li class=\"spell-item ", "\"\n  onclick=", ">\n  ", "\n  <svg class=\"icon\">\n    <use xlink:href=\"#svg-", "\">\n  </svg>\n</li>\n"], classVariants$2(spell), function (e) { return handleClick$1(e, spell, actions); }, 'cooldown' === spell.state ? Cooldown(spell) : '', spell.id); }
+var Spell = function (spell, actions) { return html(["\n<li class=\"spell-item ", "\"\n  onclick=", ">\n  ", "\n  <svg class=\"icon\">\n    ", "\n  </svg>\n</li>\n"], classVariants$2(spell), function (e) { return handleClick$1(e, spell, actions); }, 'cooldown' === spell.state ? Cooldown(spell) : '', Use({ href: ("#svg-" + (spell.id)) })); }
 
 var SpellList = List(Spell, { className: 'spells' })
 

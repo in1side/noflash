@@ -123,6 +123,17 @@ export const game = {
     actions.game.startTimer()
   },
 
+  updateCooldown: (state, actions, { uid }) => {
+    actions.game.updateSpell(spell => {
+      if (spell.uid === uid) {
+        return {
+          ...spell,
+          cooldown: spell.cooldown - 10
+        }
+      }
+    })
+  },
+
   toggleFocus: (state, actions, { uid }) => {
     actions.game.updateEnnemy(ennemy => {
       if (ennemy.uid === uid) {

@@ -1,10 +1,14 @@
 import classnames from 'classnames'
 import html from '../../util/html'
+import Use from '../../util/use'
 
 const handleClick = (e, spell, actions) => {
   e.stopPropagation()
 
-  if ('cooldown' !== spell.state) {
+  if ('cooldown' === spell.state) {
+    actions.game.startCooldown(spell)
+  }
+  else {
     actions.game.startCooldown(spell)
   }
 }
@@ -42,7 +46,7 @@ const Spell = (spell, actions) => html`
   onclick=${e => handleClick(e, spell, actions)}>
   ${'cooldown' === spell.state ? Cooldown(spell) : ''}
   <svg class="icon">
-    <use xlink:href="#svg-${spell.id}">
+    ${Use({ href: `#svg-${spell.id}` })}
   </svg>
 </li>
 `
