@@ -6,7 +6,7 @@ const handleClick = (e, spell, actions) => {
   e.stopPropagation()
 
   if ('cooldown' === spell.state) {
-    actions.game.startCooldown(spell)
+    actions.game.decrementCooldown({ spell, amount: 10 })
   }
   else {
     actions.game.startCooldown(spell)

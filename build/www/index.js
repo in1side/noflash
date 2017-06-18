@@ -7341,6 +7341,8 @@ var game$1 = {
 
     actions.game.updateSpell(function (spell) {
       if (spell.uid === uid) {
+        if ('cooldown' === spell.state) { return spell }
+
         numCooldowns++
 
         return Object.assign({}, spell,
@@ -7354,14 +7356,19 @@ var game$1 = {
     actions.game.startTimer()
   },
 
-  updateCooldown: function (state, actions, ref) {
-    var uid = ref.uid;
+  decrementCooldown: function (state, actions, ref) {
+    var uid = ref.spell.uid;
+    var amount = ref.amount;
 
     actions.game.updateSpell(function (spell) {
       if (spell.uid === uid) {
+        if ('cooldown' !== spell.state) { return spell }
+
         return Object.assign({}, spell,
-          {cooldown: spell.cooldown - 10})
+          {cooldown: Math.max(0, spell.cooldown - amount)})
       }
+
+      return spell
     })
   },
 
@@ -7796,7 +7803,7 @@ var handleClick$1 = function (e, spell, actions) {
   e.stopPropagation()
 
   if ('cooldown' === spell.state) {
-    actions.game.startCooldown(spell)
+    actions.game.decrementCooldown({ spell: spell, amount: 10 })
   }
   else {
     actions.game.startCooldown(spell)

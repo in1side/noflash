@@ -108,6 +108,8 @@ export const game = {
   startCooldown: (state, actions, { uid, refCooldown }) => {
     actions.game.updateSpell(spell => {
       if (spell.uid === uid) {
+        if ('cooldown' === spell.state) return spell
+
         numCooldowns++
 
         return {
@@ -123,14 +125,18 @@ export const game = {
     actions.game.startTimer()
   },
 
-  updateCooldown: (state, actions, { uid }) => {
+  decrementCooldown: (state, actions, { spell: { uid }, amount }) => {
     actions.game.updateSpell(spell => {
       if (spell.uid === uid) {
+        if ('cooldown' !== spell.state) return spell
+
         return {
           ...spell,
-          cooldown: spell.cooldown - 10
+          cooldown: Math.max(0, spell.cooldown - amount)
         }
       }
+
+      return spell
     })
   },
 
