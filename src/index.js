@@ -7,12 +7,12 @@ import { HomeScreen, TrackScreen } from './screens'
 app({
   state,
   actions,
-  view: {
-    '*': HomeScreen,
-    '/track': TrackScreen
-  },
+  view: [
+    ['/track', TrackScreen],
+    ['*', HomeScreen]
+  ],
   root: document.querySelector('main'),
-  plugins: [Router]
+  mixins: [Router]
 })
 
 document.body.classList.add('-ready')

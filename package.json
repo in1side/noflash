@@ -28,7 +28,7 @@
   "dependencies": {
     "classnames": "^2.2.5",
     "fastclick": "^1.0.6",
-    "hyperapp": "^0.9.1",
+    "hyperapp": "^0.9.3",
     "hyperx": "^2.3.0",
     "lol-champions": "^7.8.0",
     "lol-spells": "^7.8.0",
