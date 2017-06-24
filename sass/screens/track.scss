@@ -19,7 +19,7 @@
     flex: 1;
 
     @include state(focused, true) {
-      flex: 3;
+      flex: 5;
     }
   }
 }

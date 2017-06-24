@@ -42,17 +42,21 @@ function app(app) {
   var node
   var element
 
-  for (var i = -1, plugins = app.plugins || []; i < plugins.length; i++) {
-    var plugin = plugins[i] ? plugins[i](app) : app
+  for (var i = -1, mixins = app.mixins || []; i < mixins.length; i++) {
+    var mixin = mixins[i] ? mixins[i](app) : app
 
-    if (plugin.state != null) {
-      state = merge(state, plugin.state)
+    if (mixin.mixins != null && mixin !== app) {
+      mixins = mixins.concat(mixin.mixins)
     }
 
-    init(actions, plugin.actions)
+    if (mixin.state != null) {
+      state = merge(state, mixin.state)
+    }
 
-    Object.keys(plugin.events || []).map(function(key) {
-      events[key] = (events[key] || []).concat(plugin.events[key])
+    init(actions, mixin.actions)
+
+    Object.keys(mixin.events || []).map(function(key) {
+      events[key] = (events[key] || []).concat(mixin.events[key])
     })
   }
 
@@ -181,11 +185,13 @@ function app(app) {
   function updateElementData(element, oldData, data) {
     for (var name in merge(oldData, data)) {
       var value = data[name]
-      var oldValue = oldData[name]
+      var oldValue = name === "value" || name === "checked"
+        ? element[name]
+        : oldData[name]
 
-      if (name === "onupdate") {
+      if (name === "onupdate" && value) {
         value(element)
-      } else if (value !== oldValue || value !== element[name]) {
+      } else if (value !== oldValue) {
         setElementData(element, name, value, oldValue)
       }
     }
@@ -198,10 +204,10 @@ function app(app) {
   }
 
   function removeElement(parent, element, node) {
-    if (node.data && node.data.onremove) {
-      node.data.onremove(element)
+    ;((node.data && node.data.onremove) || removeChild)(element, removeChild)
+    function removeChild() {
+      parent.removeChild(element)
     }
-    parent.removeChild(element)
   }
 
   function patch(parent, element, oldNode, node) {
@@ -244,14 +250,7 @@ function app(app) {
 
         var newKey = getKeyFrom(newChild)
 
-        var reusableChild = reusableChildren[newKey]
-        var reusableElement = 0
-        var reusableNode = 0
-
-        if (reusableChild) {
-          reusableElement = reusableChild[0]
-          reusableNode = reusableChild[1]
-        }
+        var reusableChild = reusableChildren[newKey] || []
 
         if (null == newKey) {
           if (null == oldKey) {
@@ -261,11 +260,11 @@ function app(app) {
           i++
         } else {
           if (oldKey === newKey) {
-            patch(element, reusableElement, reusableNode, newChild)
+            patch(element, reusableChild[0], reusableChild[1], newChild)
             i++
-          } else if (reusableElement) {
-            element.insertBefore(reusableElement, oldElement)
-            patch(element, reusableElement, reusableNode, newChild)
+          } else if (reusableChild[0]) {
+            element.insertBefore(reusableChild[0], oldElement)
+            patch(element, reusableChild[0], reusableChild[1], newChild)
           } else {
             patch(element, oldElement, null, newChild)
           }
@@ -300,7 +299,7 @@ function app(app) {
   }
 }
 
-function Router(app) {
+function Router(app, view) {
   return {
     state: {
       router: match(location.pathname)
@@ -314,7 +313,7 @@ function Router(app) {
         },
         go: function(state, actions, data) {
           history.pushState({}, "", data)
-          actions.router.match(data)
+          actions.router.match(data.split("?")[0])
         }
       }
     },
@@ -322,50 +321,52 @@ function Router(app) {
       loaded: function(state, actions) {
         match()
         addEventListener("popstate", match)
+
         function match() {
           actions.router.match(location.pathname)
         }
       },
-      render: function(state, actions, view) {
-        return view[state.router.match]
+      render: function() {
+        return view
       }
     }
   }
 
   function match(data) {
-    var match
-    var params = {}
-
-    for (var route in app.view) {
+    for (var match, params = {}, i = 0, len = app.view.length; i < len; i++) {
+      var route = app.view[i][0]
       var keys = []
 
-      if (!match && route !== "*") {
+      if (!match) {
         data.replace(
           RegExp(
-            "^" +
-              route
-                .replace(/\//g, "\\/")
-                .replace(/:([\w]+)/g, function(_, key) {
-                  keys.push(key)
-                  return "([-\\w]+)"
-                }) +
-              "/?$",
+            route === "*"
+              ? "." + route
+              : "^" +
+                  route
+                    .replace(/\//g, "\\/")
+                    .replace(/:([\w]+)/g, function(_, key) {
+                      keys.push(key)
+                      return "([-\\.\\w]+)"
+                    }) +
+                  "/?$",
             "g"
           ),
           function() {
             var arguments$1 = arguments;
 
-            for (var i = 1; i < arguments.length - 2; ) {
-              params[keys.shift()] = arguments$1[i++]
+            for (var j = 1; j < arguments.length - 2; ) {
+              params[keys.shift()] = arguments$1[j++]
             }
             match = route
+            view = app.view[i][1]
           }
         )
       }
     }
 
     return {
-      match: match || "*",
+      match: match,
       params: params
     }
   }
@@ -386,7 +387,7 @@ var __moduleExports$1 = {
 	assign: assign,
 	create: create$1,
 	trim: trim,
-	bind: bind,
+	bind: bind$1,
 	slice: slice$1,
 	each: each$1,
 	map: map,
@@ -394,7 +395,7 @@ var __moduleExports$1 = {
 	isList: isList$1,
 	isFunction: isFunction$1,
 	isObject: isObject$1,
-	Global: Global,
+	Global: Global
 }
 
 function make_assign() {
@@ -442,7 +443,7 @@ function make_trim() {
 	}
 }
 
-function bind(obj, fn) {
+function bind$1(obj, fn) {
 	return function() {
 		return fn.apply(obj, Array.prototype.slice.call(arguments, 0))
 	}
@@ -453,8 +454,8 @@ function slice$1(arr, index) {
 }
 
 function each$1(obj, fn) {
-	pluck$1(obj, function(key, val) {
-		fn(key, val)
+	pluck$1(obj, function(val, key) {
+		fn(val, key)
 		return false
 	})
 }
@@ -501,76 +502,24 @@ function isObject$1(val) {
 var slice = __moduleExports$1.slice
 var pluck = __moduleExports$1.pluck
 var each = __moduleExports$1.each
+var bind = __moduleExports$1.bind
 var create = __moduleExports$1.create
 var isList = __moduleExports$1.isList
 var isFunction = __moduleExports$1.isFunction
 var isObject = __moduleExports$1.isObject
 
 var __moduleExports = {
-	createStore: createStore,
+	createStore: createStore
 }
 
 var storeAPI = {
-	version: '2.0.4',
+	version: '2.0.12',
 	enabled: false,
-	storage: null,
-
-	// addStorage adds another storage to this store. The store
-	// will use the first storage it receives that is enabled, so
-	// call addStorage in the order of preferred storage.
-	addStorage: function(storage) {
-		if (this.enabled) { return }
-		if (this._testStorage(storage)) {
-			this._storage.resolved = storage
-			this.enabled = true
-			this.storage = storage.name
-		}
-	},
-
-	// addPlugin will add a plugin to this store.
-	addPlugin: function(plugin) {
-		var self = this
-
-		// If the plugin is an array, then add all plugins in the array.
-		// This allows for a plugin to depend on other plugins.
-		if (isList(plugin)) {
-			each(plugin, function(plugin) {
-				self.addPlugin(plugin)
-			})
-			return
-		}
-
-		// Keep track of all plugins we've seen so far, so that we
-		// don't add any of them twice.
-		var seenPlugin = pluck(this._seenPlugins, function(seenPlugin) { return (plugin === seenPlugin) })
-		if (seenPlugin) {
-			return
-		}
-		this._seenPlugins.push(plugin)
-
-		// Check that the plugin is properly formed
-		if (!isFunction(plugin)) {
-			throw new Error('Plugins must be function values that return objects')
-		}
-
-		var pluginProperties = plugin.call(this)
-		if (!isObject(pluginProperties)) {
-			throw new Error('Plugins must return an object of function properties')
-		}
-
-		// Add the plugin function properties to this store instance.
-		each(pluginProperties, function(pluginFnProp, propName) {
-			if (!isFunction(pluginFnProp)) {
-				throw new Error('Bad plugin property: '+propName+' from plugin '+plugin.name+'. Plugins should only return functions.')
-			}
-			self._assignPluginFnProp(pluginFnProp, propName)
-		})
-	},
-
+	
 	// get returns the value of the given key. If that value
 	// is undefined, it returns optionalDefaultValue instead.
 	get: function(key, optionalDefaultValue) {
-		var data = this._storage().read(this._namespacePrefix + key)
+		var data = this.storage.read(this._namespacePrefix + key)
 		return this._deserialize(data, optionalDefaultValue)
 	},
 
@@ -580,27 +529,27 @@ var storeAPI = {
 		if (value === undefined) {
 			return this.remove(key)
 		}
-		this._storage().write(this._namespacePrefix + key, this._serialize(value))
+		this.storage.write(this._namespacePrefix + key, this._serialize(value))
 		return value
 	},
 
 	// remove deletes the key and value stored at the given key.
 	remove: function(key) {
-		this._storage().remove(this._namespacePrefix + key)
+		this.storage.remove(this._namespacePrefix + key)
 	},
 
 	// each will call the given callback once for each key-value pair
 	// in this store.
 	each: function(callback) {
 		var self = this
-		this._storage().each(function(val, namespacedKey) {
-			callback(self._deserialize(val), namespacedKey.replace(self._namespaceRegexp, ''))
+		this.storage.each(function(val, namespacedKey) {
+			callback.call(self, self._deserialize(val), (namespacedKey || '').replace(self._namespaceRegexp, ''))
 		})
 	},
 
 	// clearAll will remove all the stored key-value pairs in this store.
 	clearAll: function() {
-		this._storage().clearAll()
+		this.storage.clearAll()
 	},
 
 	// additional functionality that can't live in plugins
@@ -611,43 +560,50 @@ var storeAPI = {
 		return (this._namespacePrefix == '__storejs_'+namespace+'_')
 	},
 
-	// namespace clones the current store and assigns it the given namespace
-	namespace: function(namespace) {
-		if (!this._legalNamespace.test(namespace)) {
-			throw new Error('store.js namespaces can only have alhpanumerics + underscores and dashes')
-		}
-		// create a prefix that is very unlikely to collide with un-namespaced keys
-		var namespacePrefix = '__storejs_'+namespace+'_'
-		return create(this, {
-			_namespacePrefix: namespacePrefix,
-			_namespaceRegexp: namespacePrefix ? new RegExp('^'+namespacePrefix) : null
-		})
-	},
-
 	// createStore creates a store.js instance with the first
 	// functioning storage in the list of storage candidates,
 	// and applies the the given mixins to the instance.
-	createStore: function(storages, plugins) {
-		return createStore(storages, plugins)
+	createStore: function() {
+		return createStore.apply(this, arguments)
 	},
+	
+	addPlugin: function(plugin) {
+		this._addPlugin(plugin)
+	},
+	
+	namespace: function(namespace) {
+		return createStore(this.storage, this.plugins, namespace)
+	}
 }
 
-function createStore(storages, plugins) {
-	var _privateStoreProps = {
-		_seenPlugins: [],
-		_namespacePrefix: '',
-		_namespaceRegexp: null,
-		_legalNamespace: /^[a-zA-Z0-9_\-]+$/, // alpha-numeric + underscore and dash
+function _warn() {
+	var _console = (typeof console == 'undefined' ? null : console)
+	if (!_console) { return }
+	var fn = (_console.warn ? _console.warn : _console.log)
+	fn.apply(_console, arguments)
+}
 
-		_storage: function() {
-			if (!this.enabled) {
-				throw new Error("store.js: No supported storage has been added! "+
-					"Add one (e.g store.addStorage(require('store/storages/cookieStorage')) "+
-					"or use a build with more built-in storages (e.g "+
-					"https://github.com/marcuswestin/store.js/tree/master/dist/store.legacy.min.js)")
-			}
-			return this._storage.resolved
-		},
+function createStore(storages, plugins, namespace) {
+	if (!namespace) {
+		namespace = ''
+	}
+	if (storages && !isList(storages)) {
+		storages = [storages]
+	}
+	if (plugins && !isList(plugins)) {
+		plugins = [plugins]
+	}
+
+	var namespacePrefix = (namespace ? '__storejs_'+namespace+'_' : '')
+	var namespaceRegexp = (namespace ? new RegExp('^'+namespacePrefix) : null)
+	var legalNamespaces = /^[a-zA-Z0-9_\-]*$/ // alpha-numeric + underscore and dash
+	if (!legalNamespaces.test(namespace)) {
+		throw new Error('store.js namespaces can only have alphanumerics + underscores and dashes')
+	}
+	
+	var _privateStoreProps = {
+		_namespacePrefix: namespacePrefix,
+		_namespaceRegexp: namespaceRegexp,
 
 		_testStorage: function(storage) {
 			try {
@@ -702,14 +658,80 @@ function createStore(storages, plugins) {
 
 			return (val !== undefined ? val : defaultVal)
 		},
+		
+		_addStorage: function(storage) {
+			if (this.enabled) { return }
+			if (this._testStorage(storage)) {
+				this.storage = storage
+				this.enabled = true
+			}
+		},
+
+		_addPlugin: function(plugin) {
+			var self = this
+
+			// If the plugin is an array, then add all plugins in the array.
+			// This allows for a plugin to depend on other plugins.
+			if (isList(plugin)) {
+				each(plugin, function(plugin) {
+					self._addPlugin(plugin)
+				})
+				return
+			}
+
+			// Keep track of all plugins we've seen so far, so that we
+			// don't add any of them twice.
+			var seenPlugin = pluck(this.plugins, function(seenPlugin) {
+				return (plugin === seenPlugin)
+			})
+			if (seenPlugin) {
+				return
+			}
+			this.plugins.push(plugin)
+
+			// Check that the plugin is properly formed
+			if (!isFunction(plugin)) {
+				throw new Error('Plugins must be function values that return objects')
+			}
+
+			var pluginProperties = plugin.call(this)
+			if (!isObject(pluginProperties)) {
+				throw new Error('Plugins must return an object of function properties')
+			}
+
+			// Add the plugin function properties to this store instance.
+			each(pluginProperties, function(pluginFnProp, propName) {
+				if (!isFunction(pluginFnProp)) {
+					throw new Error('Bad plugin property: '+propName+' from plugin '+plugin.name+'. Plugins should only return functions.')
+				}
+				self._assignPluginFnProp(pluginFnProp, propName)
+			})
+		},
+		
+		// Put deprecated properties in the private API, so as to not expose it to accidential
+		// discovery through inspection of the store object.
+		
+		// Deprecated: addStorage
+		addStorage: function(storage) {
+			_warn('store.addStorage(storage) is deprecated. Use createStore([storages])')
+			this._addStorage(storage)
+		}
 	}
 
-	var store = create(_privateStoreProps, storeAPI)
+	var store = create(_privateStoreProps, storeAPI, {
+		plugins: []
+	})
+	store.raw = {}
+	each(store, function(prop, propName) {
+		if (isFunction(prop)) {
+			store.raw[propName] = bind(store, prop)			
+		}
+	})
 	each(storages, function(storage) {
-		store.addStorage(storage)
+		store._addStorage(storage)
 	})
 	each(plugins, function(plugin) {
-		store.addPlugin(plugin)
+		store._addPlugin(plugin)
 	})
 	return store
 }
@@ -978,7 +1000,7 @@ var __moduleExports$7 = {
 	write: write$4,
 	each: each$6,
 	remove: remove$4,
-	clearAll: clearAll$4,
+	clearAll: clearAll$4
 }
 
 function sessionStorage() {
@@ -1048,15 +1070,17 @@ function clearAll$5(key) {
 	memoryStorage = {}
 }
 
-var __moduleExports$2 = {
+var __moduleExports$2 = [
 	// Listed in order of usage preference
-	'localStorage': __moduleExports$3,
-	'oldFF-globalStorage': __moduleExports$4,
-	'oldIE-userDataStorage': __moduleExports$5,
-	'cookieStorage': __moduleExports$6,
-	'sessionStorage': __moduleExports$7,
-	'memoryStorage': __moduleExports$8,
-}
+	__moduleExports$3,
+	__moduleExports$4,
+	__moduleExports$5,
+	__moduleExports$6,
+	__moduleExports$7,
+	__moduleExports$8
+]
+
+/* eslint-disable */
 
 //  json2.js
 //  2016-10-28
@@ -7794,7 +7818,7 @@ var HomeScreen = function (state, actions) { return html(["\n<section class=\"ho
 var List = function (component, ref) {
   var className = ref.className;
 
-  return function (items, actions) { return html(["\n<ul class=\"", "\">\n  ", "\n</ul>\n"], className, items.map(function (item) { return component(item, actions); })); };
+  return function (items, state, actions) { return html(["\n<ul class=\"", "\">\n  ", "\n</ul>\n"], className, items.map(function (item) { return component(item, state, actions); })); };
 }
 
 var handleClick$1 = function (e, spell, actions) {
@@ -7822,7 +7846,14 @@ var Cooldown = function (spell) {
   return html(["\n  <svg class=\"cooldown\"\n    viewBox=\"-5 -5 110 110\">\n    <g transform=", "\n      stroke-linecap=\"round\"\n      vector-effect=\"non-scaling-stroke\">\n      <circle class=\"progress-bg\" cx=\"0\" cy=\"0\" r=\"50\" />\n      <path class=\"progress\" d=", "></path>\n    </g>\n  </svg>\n  "], ("translate(" + r + ", " + r + ")"), ("M 0 " + (-r) + " A " + r + " " + r + " 1 " + m + " 1 " + x + " " + y))
 }
 
-var Spell = function (spell, actions) { return html(["\n<li class=\"spell-item ", "\"\n  onclick=", ">\n  ", "\n  <svg class=\"icon\">\n    ", "\n  </svg>\n</li>\n"], classVariants$2(spell), function (e) { return handleClick$1(e, spell, actions); }, 'cooldown' === spell.state ? Cooldown(spell) : '', Use({ href: ("#svg-" + (spell.id)) })); }
+var Time = function (spell) {
+  var s = ('0' + (spell.cooldown % 60)).slice(-2)
+  var m = spell.cooldown / 60 | 0
+
+  return html(["\n  <span class=\"time\">", "</span>\n  "], m > 0 ? (m + ":" + s) : s)
+}
+
+var Spell = function (spell, ennemy, actions) { return html(["\n<li class=\"spell-item ", "\"\n  onclick=", ">\n  ", "\n  <svg class=\"icon\">\n    ", "\n  </svg>\n  ", "\n</li>\n"], classVariants$2(spell), function (e) { return handleClick$1(e, spell, actions); }, 'cooldown' === spell.state ? Cooldown(spell) : '', Use({ href: ("#svg-" + (spell.id)) }), 'cooldown' === spell.state && ennemy.focused ? Time(spell) : ''); }
 
 var SpellList = List(Spell, { className: 'spells' })
 
@@ -7833,25 +7864,25 @@ var handleClick = function (e, ennemy, actions) {
 var classVariants$1 = function (ennemy) { return index$1(( obj = {}, obj["-focused"] = ennemy.focused, obj ))
   var obj;; }
 
-var Ennemy = function (ennemy, actions) { return html(["\n<li class=\"ennemy-item ", "\"\n  onclick=", ">\n  <div class=\"meta\">\n    <h2 class=\"champion\">", "</h2>\n  </div>\n  ", "\n</li>\n"], classVariants$1(ennemy), function (e) { return handleClick(e, ennemy, actions); }, ennemy.champion.name, SpellList(ennemy.spells, actions)); }
+var Ennemy = function (ennemy, state, actions) { return html(["\n<li class=\"ennemy-item ", "\"\n  onclick=", ">\n  <div class=\"meta\">\n    <h2 class=\"champion\">", "</h2>\n  </div>\n  ", "\n</li>\n"], classVariants$1(ennemy), function (e) { return handleClick(e, ennemy, actions); }, ennemy.champion.name, SpellList(ennemy.spells, ennemy, actions)); }
 
 var EnnemyList = List(Ennemy, { className: 'ennemies' })
 
 var TrackScreen = function (ref, actions) {
   var game = ref.game;
 
-  return html(["\n<section class=\"track-screen\">\n  ", "\n</section>\n"], EnnemyList(game.ennemies, actions));
+  return html(["\n<section class=\"track-screen\">\n  ", "\n</section>\n"], EnnemyList(game.ennemies, null, actions));
 }
 
 app({
   state: state,
   actions: actions,
-  view: {
-    '*': HomeScreen,
-    '/track': TrackScreen
-  },
+  view: [
+    ['/track', TrackScreen],
+    ['*', HomeScreen]
+  ],
   root: document.querySelector('main'),
-  plugins: [Router]
+  mixins: [Router]
 })
 
 document.body.classList.add('-ready')

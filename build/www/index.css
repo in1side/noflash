@@ -218,7 +218,7 @@ select {
     margin-bottom: .7rem; }
   .-focused.ennemy-item {
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     background: rgba(255, 255, 255, 0.1); }
   .-dragging.ennemy-item {
@@ -243,16 +243,19 @@ select {
     align-items: center;
     margin-right: -1rem; }
     .-focused.ennemy-item > .spells {
+      flex: 1;
       margin-right: 0;
-      padding: 1rem 0; }
+      padding: 1rem 0;
+      width: 100%; }
   .ennemy-item > .spells > .spell-item {
     margin: 0 1.2rem;
     width: 3.6rem;
-    height: 3.6rem; }
+    height: 3.6rem;
+    text-align: center; }
     .-focused.ennemy-item > .spells > .spell-item {
-      margin: 0 2.4rem;
-      width: 5rem;
-      height: 5rem; }
+      flex: 1;
+      height: 50%;
+      max-height: 6rem; }
 
 .-cooldown.spell-item {
   position: relative; }
@@ -284,6 +287,14 @@ select {
     stroke-opacity: .3;
     stroke-width: 1; }
 
+.spell-item > .time {
+  position: absolute;
+  top: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  color: #ffb72c; }
+
 .track-screen {
   display: flex;
   flex-direction: column;
@@ -296,4 +307,4 @@ select {
   .track-screen > .ennemies > .ennemy-item {
     flex: 1; }
     .track-screen > .ennemies > .ennemy-item.-focused {
-      flex: 3; }
+      flex: 5; }

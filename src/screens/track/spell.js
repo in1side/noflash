@@ -41,13 +41,23 @@ const Cooldown = (spell) => {
   `
 }
 
-const Spell = (spell, actions) => html`
+const Time = (spell) => {
+  const s = ('0' + (spell.cooldown % 60)).slice(-2)
+  const m = spell.cooldown / 60 | 0
+
+  return html`
+  <span class="time">${m > 0 ? `${m}:${s}` : s}</span>
+  `
+}
+
+const Spell = (spell, ennemy, actions) => html`
 <li class="spell-item ${classVariants(spell)}"
   onclick=${e => handleClick(e, spell, actions)}>
   ${'cooldown' === spell.state ? Cooldown(spell) : ''}
   <svg class="icon">
     ${Use({ href: `#svg-${spell.id}` })}
   </svg>
+  ${'cooldown' === spell.state && ennemy.focused ? Time(spell) : ''}
 </li>
 `
 

@@ -33,4 +33,13 @@
       stroke-width: 1;
     }
   }
+
+  > .time {
+    position: absolute;
+    top: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2rem;
+    color: color-get(primary);
+  }
 }
