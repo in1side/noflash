@@ -1,4 +1,5 @@
 import { app, Router } from 'hyperapp'
+import hmr from 'hyperapp-hmr'
 
 import * as state from './state'
 import * as actions from './actions'
@@ -12,7 +13,7 @@ app({
     ['*', HomeScreen]
   ],
   root: document.querySelector('main'),
-  mixins: [Router]
+  mixins: [Router, hmr]
 })
 
 document.body.classList.add('-ready')

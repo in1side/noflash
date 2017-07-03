@@ -372,6 +372,98 @@ function Router(app, view) {
   }
 }
 
+var __moduleExports = function persist (options) {
+  if (!options) { options = {} }
+
+  var ignore = options.ignore || []
+  var storage = options.storage || 'hyperapp-persist-state'
+  var rescue = options.rescue
+  
+  function ignoreOnSave (key, value) {
+    if (key !== 'previous' && ignore.indexOf(key) === -1) { return value }
+  }
+  
+  return function (app) {
+    var previous = JSON.parse(localStorage.getItem(storage))
+    var version = previous ? previous.version : 0
+
+    return {
+      state: {
+        previous: previous,
+        version: version
+      },
+      actions: {
+        _saveSessionState: function (state) {
+          localStorage.setItem(storage, JSON.stringify(state, ignoreOnSave))
+        },
+        _newStateVersion: function (state) {
+          return {
+            version: state.version + 1,
+            previous: rescue ? state.previous : null
+          }
+        }
+      },
+      events: {
+        loaded: function (state, actions) {
+          // Check if states are incompatible, and create a new verison
+          if (incompatible(state, state.previous, ignore)) {
+            actions._newStateVersion()
+          }
+
+          // Save state on app exit
+          window.addEventListener('unload', function () {
+            actions._saveSessionState()
+          })
+        }
+      }
+    }
+  }
+}
+
+function incompatible (state, previous, ignore) {
+  if (state !== null && previous === null) { return false }
+  if (typeof state !== 'object' || typeof previous !== 'object') {
+    return typeof state === typeof previous
+  }
+
+  for (var prop in state) {
+    if (ignore && ignore.indexOf(prop) !== -1) {
+      continue
+    }
+
+    var value = state[prop]
+    var old = previous[prop]
+    
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      if (incompatible(value, old)) { return true }
+    } else if (!old) {
+      return true
+    } 
+  }
+}
+
+var index = function hmr (app) {
+  return {
+    mixins: [
+      __moduleExports({ storage: 'hyperapp-hmr-state' })
+    ],
+    actions: {
+      _restoreAllPreviousState: function (state) {
+        return state.previous
+      }
+    },
+    events: {
+      loaded: function (state, actions) {
+        if (state.previous) {
+          actions._restoreAllPreviousState() 
+        }
+      },
+      // TODO: Experiment with recording and rolling back actions
+      // actions: function () {},
+    }
+  }
+}
+
 var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 function createCommonjsModule(fn, module) {
@@ -383,7 +475,7 @@ var create$1 = make_create()
 var trim = make_trim()
 var Global = (typeof window !== 'undefined' ? window : commonjsGlobal)
 
-var __moduleExports$1 = {
+var __moduleExports$2 = {
 	assign: assign,
 	create: create$1,
 	trim: trim,
@@ -499,16 +591,16 @@ function isObject$1(val) {
 	return val && {}.toString.call(val) === '[object Object]'
 }
 
-var slice = __moduleExports$1.slice
-var pluck = __moduleExports$1.pluck
-var each = __moduleExports$1.each
-var bind = __moduleExports$1.bind
-var create = __moduleExports$1.create
-var isList = __moduleExports$1.isList
-var isFunction = __moduleExports$1.isFunction
-var isObject = __moduleExports$1.isObject
+var slice = __moduleExports$2.slice
+var pluck = __moduleExports$2.pluck
+var each = __moduleExports$2.each
+var bind = __moduleExports$2.bind
+var create = __moduleExports$2.create
+var isList = __moduleExports$2.isList
+var isFunction = __moduleExports$2.isFunction
+var isObject = __moduleExports$2.isObject
 
-var __moduleExports = {
+var __moduleExports$1 = {
 	createStore: createStore
 }
 
@@ -736,9 +828,9 @@ function createStore(storages, plugins, namespace) {
 	return store
 }
 
-var Global$1 = __moduleExports$1.Global
+var Global$1 = __moduleExports$2.Global
 
-var __moduleExports$3 = {
+var __moduleExports$4 = {
 	name: 'localStorage',
 	read: read,
 	write: write,
@@ -747,36 +839,41 @@ var __moduleExports$3 = {
 	clearAll: clearAll,
 }
 
-function localStorage() {
+function localStorage$1() {
 	return Global$1.localStorage
 }
 
 function read(key) {
-	return localStorage().getItem(key)
+	return localStorage$1().getItem(key)
 }
 
 function write(key, data) {
-	return localStorage().setItem(key, data)
+	return localStorage$1().setItem(key, data)
 }
 
 function each$2(fn) {
-	for (var i = localStorage().length - 1; i >= 0; i--) {
-		var key = localStorage().key(i)
+	for (var i = localStorage$1().length - 1; i >= 0; i--) {
+		var key = localStorage$1().key(i)
 		fn(read(key), key)
 	}
 }
 
 function remove(key) {
-	return localStorage().removeItem(key)
+	return localStorage$1().removeItem(key)
 }
 
 function clearAll() {
-	return localStorage().clear()
+	return localStorage$1().clear()
 }
 
-var Global$2 = __moduleExports$1.Global
+// oldFF-globalStorage provides storage for Firefox
+// versions 6 and 7, where no localStorage, etc
+// is available.
 
-var __moduleExports$4 = {
+
+var Global$2 = __moduleExports$2.Global
+
+var __moduleExports$5 = {
 	name: 'oldFF-globalStorage',
 	read: read$1,
 	write: write$1,
@@ -812,9 +909,14 @@ function clearAll$1() {
 	})
 }
 
-var Global$3 = __moduleExports$1.Global
+// oldIE-userDataStorage provides storage for Internet Explorer
+// versions 6 and 7, where no localStorage, sessionStorage, etc
+// is available.
 
-var __moduleExports$5 = {
+
+var Global$3 = __moduleExports$2.Global
+
+var __moduleExports$6 = {
 	name: 'oldIE-userDataStorage',
 	write: write$2,
 	read: read$2,
@@ -935,10 +1037,15 @@ function _makeIEStorageElFunction() {
 	}
 }
 
-var Global$4 = __moduleExports$1.Global
-var trim$1 = __moduleExports$1.trim
+// cookieStorage is useful Safari private browser mode, where localStorage
+// doesn't work but cookies do. This implementation is adopted from
+// https://developer.mozilla.org/en-US/docs/Web/API/Storage/LocalStorage
 
-var __moduleExports$6 = {
+
+var Global$4 = __moduleExports$2.Global
+var trim$1 = __moduleExports$2.trim
+
+var __moduleExports$7 = {
 	name: 'cookieStorage',
 	read: read$3,
 	write: write$3,
@@ -992,9 +1099,9 @@ function _has(key) {
 	return (new RegExp("(?:^|;\\s*)" + escape(key).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=")).test(doc$1.cookie)
 }
 
-var Global$5 = __moduleExports$1.Global
+var Global$5 = __moduleExports$2.Global
 
-var __moduleExports$7 = {
+var __moduleExports$8 = {
 	name: 'sessionStorage',
 	read: read$4,
 	write: write$4,
@@ -1035,7 +1142,7 @@ function clearAll$4() {
 // However, stored values will not persist when the browser navigates to
 // a new page or reloads the current page.
 
-var __moduleExports$8 = {
+var __moduleExports$9 = {
 	name: 'memoryStorage',
 	read: read$5,
 	write: write$5,
@@ -1070,14 +1177,14 @@ function clearAll$5(key) {
 	memoryStorage = {}
 }
 
-var __moduleExports$2 = [
+var __moduleExports$3 = [
 	// Listed in order of usage preference
-	__moduleExports$3,
 	__moduleExports$4,
 	__moduleExports$5,
 	__moduleExports$6,
 	__moduleExports$7,
-	__moduleExports$8
+	__moduleExports$8,
+	__moduleExports$9
 ]
 
 /* eslint-disable */
@@ -1593,16 +1700,16 @@ var json2 = Object.freeze({
 
 });
 
-var __moduleExports$9 = json2Plugin
+var __moduleExports$10 = json2Plugin
 
 function json2Plugin() {
 	
 	return {}
 }
 
-var plugins = [__moduleExports$9]
+var plugins = [__moduleExports$10]
 
-var store_legacy = __moduleExports.createStore(__moduleExports$2, plugins)
+var store_legacy = __moduleExports$1.createStore(__moduleExports$3, plugins)
 
 // Packages
 var app$1 = {
@@ -7415,7 +7522,7 @@ var actions = Object.freeze({
   game: game$1
 });
 
-var __moduleExports$10 = attributeToProperty
+var __moduleExports$11 = attributeToProperty
 
 var transform = {
   'class': 'className',
@@ -7450,13 +7557,13 @@ var ATTR_EQ = 11;
 var ATTR_BREAK = 12;
 var COMMENT = 13
 
-var index = function (h, opts) {
+var index$1 = function (h, opts) {
   if (!opts) { opts = {} }
   var concat = opts.concat || function (a, b) {
     return String(a) + String(b)
   }
   if (opts.attrToProp !== false) {
-    h = __moduleExports$10(h)
+    h = __moduleExports$11(h)
   }
 
   return function (strings) {
@@ -7719,7 +7826,7 @@ var closeRE = RegExp('^(' + [
 ].join('|') + ')(?:[\.#][a-zA-Z0-9\u007F-\uFFFF_:-]+)*$')
 function selfClosing (tag) { return closeRE.test(tag) }
 
-var html = index(h, { attrToProp: false })
+var html = index$1(h, { attrToProp: false })
 
 var Use = function (ref) {
 	var href = ref.href;
@@ -7729,7 +7836,7 @@ var Use = function (ref) {
 
 var HomeHeader = function () { return html(["\n<div class=\"home-header\">\n  <svg class=\"logo\" width=\"96px\" height=\"141px\">\n    ", "\n  </svg>\n  <h1 class=\"title\">noflash</h1>\n</div>\n"], Use({ href: '#icon-logo' })); }
 
-var index$1 = createCommonjsModule(function (module) {
+var index$2 = createCommonjsModule(function (module) {
 /*!
   Copyright (c) 2016 Jed Watson.
   Licensed under the MIT License (MIT), see
@@ -7799,7 +7906,7 @@ var handleSubmit = function (e, user, actions) {
   }
 }
 
-var classVariants = function (app) { return index$1(( obj = {}, obj["-loading"] = app.loading, obj ))
+var classVariants = function (app) { return index$2(( obj = {}, obj["-loading"] = app.loading, obj ))
   var obj;; }
 
 var Region = function (region, selected) { return html(["\n<option ", ">", "</option>\n"], selected ? 'selected' : '', region); }
@@ -7832,7 +7939,7 @@ var handleClick$1 = function (e, spell, actions) {
   }
 }
 
-var classVariants$2 = function (spell) { return index$1(( obj = {}, obj[("-" + (spell.id))] = true, obj[("-" + (spell.state))] = true, obj["-time60"] = spell.cooldown <= 60 && spell.cooldown > 30, obj["-time30"] = spell.cooldown <= 30 && spell.cooldown > 0, obj ))
+var classVariants$2 = function (spell) { return index$2(( obj = {}, obj[("-" + (spell.id))] = true, obj[("-" + (spell.state))] = true, obj["-time60"] = spell.cooldown <= 60 && spell.cooldown > 30, obj["-time30"] = spell.cooldown <= 30 && spell.cooldown > 0, obj ))
   var obj;; }
 
 var Cooldown = function (spell) {
@@ -7861,7 +7968,7 @@ var handleClick = function (e, ennemy, actions) {
   actions.game.toggleFocus(ennemy)
 }
 
-var classVariants$1 = function (ennemy) { return index$1(( obj = {}, obj["-focused"] = ennemy.focused, obj ))
+var classVariants$1 = function (ennemy) { return index$2(( obj = {}, obj["-focused"] = ennemy.focused, obj ))
   var obj;; }
 
 var Ennemy = function (ennemy, state, actions) { return html(["\n<li class=\"ennemy-item ", "\"\n  onclick=", ">\n  <div class=\"meta\">\n    <h2 class=\"champion\">", "</h2>\n  </div>\n  ", "\n</li>\n"], classVariants$1(ennemy), function (e) { return handleClick(e, ennemy, actions); }, ennemy.champion.name, SpellList(ennemy.spells, ennemy, actions)); }
@@ -7882,7 +7989,7 @@ app({
     ['*', HomeScreen]
   ],
   root: document.querySelector('main'),
-  mixins: [Router]
+  mixins: [Router, index]
 })
 
 document.body.classList.add('-ready')

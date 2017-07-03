@@ -893,7 +893,7 @@ config-chain@~1.1.10:
     ini "^1.3.4"
     proto-list "~1.2.1"
 
-connect-history-api-fallback@^1.1.0:
+connect-history-api-fallback@^1.1.0, connect-history-api-fallback@^1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/connect-history-api-fallback/-/connect-history-api-fallback-1.3.0.tgz#e51d17f8f0ef0db90a64fdb47de3051556e9f169"
 
@@ -2178,6 +2178,16 @@ http-signature@~1.1.0:
 https-browserify@~0.0.0:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/https-browserify/-/https-browserify-0.0.1.tgz#3f91365cabe60b77ed0ebba24b454e3e09d95a82"
+
+hyperapp-hmr@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/hyperapp-hmr/-/hyperapp-hmr-0.1.0.tgz#b691c5dafd1684065c5fcdec911b2e981984cc1f"
+  dependencies:
+    hyperapp-persist "^1.1.0"
+
+hyperapp-persist@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/hyperapp-persist/-/hyperapp-persist-1.1.0.tgz#fc8d45b07007378ffd5a593320b20fe4d8041478"
 
 hyperapp@^0.9.3:
   version "0.9.3"
