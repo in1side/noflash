@@ -1,26 +1,25 @@
 import champions from 'lol-champions'
 import spells from 'lol-spells'
 import store from 'store'
-import xtend from 'xtend'
+import { find, $each } from 'qim'
 
 const proxyUrl = 'https://wt-ngryman-gmail_com-0.run.webtask.io/riot-proxy'
 
-let nextEnnemyUid = 0
-let nextSpellUid = 0
+let nextEnnemyId = 0
 
-function createChampion(id) {
-  const champion = champions.find(c => c.key === String(id))
-  return xtend({}, champion)
-}
-
-function createSpell(id) {
-  const spell = spells.find(s => s.key === String(id))
-  return xtend({}, spell, {
-    uid: nextSpellUid++,
-    state: 'available',
-    cooldown: 0,
-    refCooldown: spell.cooldown
-  })
+function createEnnemy(participant) {
+  return {
+    id: nextEnnemyId++,
+    name: participant.summonerName,
+    champion: find(
+      [$each, champion => champion.key === String(participant.championId)],
+      champions
+    ),
+    spells: [
+      participant.spell1Id,
+      participant.spell2Id
+    ]
+  }
 }
 
 const endpoint = (type, region) => {
@@ -80,17 +79,15 @@ export const fetchGame = (summoner, region) => {
 
       const ennemies = participants
         .filter(participant => participant.teamId !== summonerTeam)
-        .map(participant => ({
-          uid: nextEnnemyUid++,
-          name: participant.summonerName,
-          champion: createChampion(participant.championId),
-          spells: [
-            createSpell(participant.spell1Id),
-            createSpell(participant.spell2Id)
-          ]
-        }))
+        .map(createEnnemy)
 
-      return { id: gameId, ennemies }
+      const spellsHash = spells.reduce((hash, spell) => {
+        spell.key = Number(spell.key)
+        hash[spell.key] = spell
+        return hash
+      }, {})
+
+      return { gameId, ennemies, spells: spellsHash }
     }, status => {
       if (status >= 400) {
         throw new Error('No live game found')

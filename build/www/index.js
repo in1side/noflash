@@ -1,6 +1,98 @@
 (function () {
 'use strict';
 
+var __moduleExports = function persist (options) {
+  if (!options) { options = {} }
+
+  var ignore = options.ignore || []
+  var storage = options.storage || 'hyperapp-persist-state'
+  var rescue = options.rescue
+  
+  function ignoreOnSave (key, value) {
+    if (key !== 'previous' && ignore.indexOf(key) === -1) { return value }
+  }
+  
+  return function (app) {
+    var previous = JSON.parse(localStorage.getItem(storage))
+    var version = previous ? previous.version : 0
+
+    return {
+      state: {
+        previous: previous,
+        version: version
+      },
+      actions: {
+        _saveSessionState: function (state) {
+          localStorage.setItem(storage, JSON.stringify(state, ignoreOnSave))
+        },
+        _newStateVersion: function (state) {
+          return {
+            version: state.version + 1,
+            previous: rescue ? state.previous : null
+          }
+        }
+      },
+      events: {
+        loaded: function (state, actions) {
+          // Check if states are incompatible, and create a new verison
+          if (incompatible(state, state.previous, ignore)) {
+            actions._newStateVersion()
+          }
+
+          // Save state on app exit
+          window.addEventListener('unload', function () {
+            actions._saveSessionState()
+          })
+        }
+      }
+    }
+  }
+}
+
+function incompatible (state, previous, ignore) {
+  if (state !== null && previous === null) { return false }
+  if (typeof state !== 'object' || typeof previous !== 'object') {
+    return typeof state === typeof previous
+  }
+
+  for (var prop in state) {
+    if (ignore && ignore.indexOf(prop) !== -1) {
+      continue
+    }
+
+    var value = state[prop]
+    var old = previous[prop]
+    
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      if (incompatible(value, old)) { return true }
+    } else if (!old) {
+      return true
+    } 
+  }
+}
+
+var index = function hmr (app) {
+  return {
+    mixins: [
+      __moduleExports({ storage: 'hyperapp-hmr-state' })
+    ],
+    actions: {
+      _restoreAllPreviousState: function (state) {
+        return state.previous
+      }
+    },
+    events: {
+      loaded: function (state, actions) {
+        if (state.previous) {
+          actions._restoreAllPreviousState() 
+        }
+      },
+      // TODO: Experiment with recording and rolling back actions
+      // actions: function () {},
+    }
+  }
+}
+
 function h(tag, data) {
   var arguments$1 = arguments;
 
@@ -372,99 +464,27 @@ function Router(app, view) {
   }
 }
 
-var __moduleExports = function persist (options) {
-  if (!options) { options = {} }
+var Logger = function () { return ({
+  events: {
+    action: function (state, actions, data) {
+      if (!data.name.startsWith('_')) {
+        console.groupCollapsed(data.name)
+        console.log('%caction', 'color: blue', data.data)
+        console.log('%cstate', 'color: green', state)
+        console.groupEnd()
 
-  var ignore = options.ignore || []
-  var storage = options.storage || 'hyperapp-persist-state'
-  var rescue = options.rescue
-  
-  function ignoreOnSave (key, value) {
-    if (key !== 'previous' && ignore.indexOf(key) === -1) { return value }
-  }
-  
-  return function (app) {
-    var previous = JSON.parse(localStorage.getItem(storage))
-    var version = previous ? previous.version : 0
-
-    return {
-      state: {
-        previous: previous,
-        version: version
-      },
-      actions: {
-        _saveSessionState: function (state) {
-          localStorage.setItem(storage, JSON.stringify(state, ignoreOnSave))
-        },
-        _newStateVersion: function (state) {
-          return {
-            version: state.version + 1,
-            previous: rescue ? state.previous : null
-          }
-        }
-      },
-      events: {
-        loaded: function (state, actions) {
-          // Check if states are incompatible, and create a new verison
-          if (incompatible(state, state.previous, ignore)) {
-            actions._newStateVersion()
-          }
-
-          // Save state on app exit
-          window.addEventListener('unload', function () {
-            actions._saveSessionState()
-          })
-        }
+        window.state = state
+        window.actions = actions
       }
     }
   }
-}
-
-function incompatible (state, previous, ignore) {
-  if (state !== null && previous === null) { return false }
-  if (typeof state !== 'object' || typeof previous !== 'object') {
-    return typeof state === typeof previous
-  }
-
-  for (var prop in state) {
-    if (ignore && ignore.indexOf(prop) !== -1) {
-      continue
-    }
-
-    var value = state[prop]
-    var old = previous[prop]
-    
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      if (incompatible(value, old)) { return true }
-    } else if (!old) {
-      return true
-    } 
-  }
-}
-
-var index = function hmr (app) {
-  return {
-    mixins: [
-      __moduleExports({ storage: 'hyperapp-hmr-state' })
-    ],
-    actions: {
-      _restoreAllPreviousState: function (state) {
-        return state.previous
-      }
-    },
-    events: {
-      loaded: function (state, actions) {
-        if (state.previous) {
-          actions._restoreAllPreviousState() 
-        }
-      },
-      // TODO: Experiment with recording and rolling back actions
-      // actions: function () {},
-    }
-  }
-}
+}); }
 
 var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+
+function unwrapExports (x) {
+	return x && x.__esModule ? x['default'] : x;
+}
 
 function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
@@ -866,11 +886,6 @@ function clearAll() {
 	return localStorage$1().clear()
 }
 
-// oldFF-globalStorage provides storage for Firefox
-// versions 6 and 7, where no localStorage, etc
-// is available.
-
-
 var Global$2 = __moduleExports$2.Global
 
 var __moduleExports$5 = {
@@ -908,11 +923,6 @@ function clearAll$1() {
 		delete globalStorage[key]
 	})
 }
-
-// oldIE-userDataStorage provides storage for Internet Explorer
-// versions 6 and 7, where no localStorage, sessionStorage, etc
-// is available.
-
 
 var Global$3 = __moduleExports$2.Global
 
@@ -1036,11 +1046,6 @@ function _makeIEStorageElFunction() {
 		return
 	}
 }
-
-// cookieStorage is useful Safari private browser mode, where localStorage
-// doesn't work but cookies do. This implementation is adopted from
-// https://developer.mozilla.org/en-US/docs/Web/API/Storage/LocalStorage
-
 
 var Global$4 = __moduleExports$2.Global
 var trim$1 = __moduleExports$2.trim
@@ -1711,31 +1716,1357 @@ var plugins = [__moduleExports$10]
 
 var store_legacy = __moduleExports$1.createStore(__moduleExports$3, plugins)
 
-// Packages
-var app$1 = {
-  loading: false,
-  error: ''
+var ui = {
+  home: {
+    loading: false,
+    error: ''
+  },
+  track: {
+    focuses: {},
+    timers: {}
+  }
 }
 
-var user = store_legacy.get('cache:user') || {
-  name: '',
-  region: 'EUW',
-  summoner: null
-}
-
-var game = {
-  id: 0,
+var data = {
+  user: store_legacy.get('cache:user') || {
+    name: '',
+    region: 'EUW',
+    summoner: null
+  },
+  game: null,
   ennemies: [],
-  numCooldowns: 0,
-  intervalId: null
+  spells: {}
 }
 
 
 var state = Object.freeze({
-  app: app$1,
-  user: user,
-  game: game
+  ui: ui,
+  data: data
 });
+
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+var propIsEnumerable = Object.prototype.propertyIsEnumerable;
+
+function toObject(val) {
+	if (val === null || val === undefined) {
+		throw new TypeError('Object.assign cannot be called with null or undefined');
+	}
+
+	return Object(val);
+}
+
+function shouldUseNative() {
+	try {
+		if (!Object.assign) {
+			return false;
+		}
+
+		// Detect buggy property enumeration order in older V8 versions.
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=4118
+		var test1 = new String('abc');  // eslint-disable-line
+		test1[5] = 'de';
+		if (Object.getOwnPropertyNames(test1)[0] === '5') {
+			return false;
+		}
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
+		var test2 = {};
+		for (var i = 0; i < 10; i++) {
+			test2['_' + String.fromCharCode(i)] = i;
+		}
+		var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
+			return test2[n];
+		});
+		if (order2.join('') !== '0123456789') {
+			return false;
+		}
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
+		var test3 = {};
+		'abcdefghijklmnopqrst'.split('').forEach(function (letter) {
+			test3[letter] = letter;
+		});
+		if (Object.keys(Object.assign({}, test3)).join('') !==
+				'abcdefghijklmnopqrst') {
+			return false;
+		}
+
+		return true;
+	} catch (e) {
+		// We don't expect any of the above to throw, but better to be safe.
+		return false;
+	}
+}
+
+var __moduleExports$11 = shouldUseNative() ? Object.assign : function (target, source) {
+	var arguments$1 = arguments;
+
+	var from;
+	var to = toObject(target);
+	var symbols;
+
+	for (var s = 1; s < arguments.length; s++) {
+		from = Object(arguments$1[s]);
+
+		for (var key in from) {
+			if (hasOwnProperty.call(from, key)) {
+				to[key] = from[key];
+			}
+		}
+
+		if (Object.getOwnPropertySymbols) {
+			symbols = Object.getOwnPropertySymbols(from);
+			for (var i = 0; i < symbols.length; i++) {
+				if (propIsEnumerable.call(from, symbols[i])) {
+					to[symbols[i]] = from[symbols[i]];
+				}
+			}
+		}
+	}
+
+	return to;
+};
+
+var index$1 = createCommonjsModule(function (module, exports) {
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var objectAssign = _interopDefault(__moduleExports$11);
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var defineProperty = function (obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var toConsumableArray = function (arr) {
+  if (Array.isArray(arr)) {
+    for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; }
+
+    return arr2;
+  } else {
+    return Array.from(arr);
+  }
+};
+
+var selectKey = '@@qim/navSelect';
+var updateKey = '@@qim/navUpdate';
+
+var $traverse = function $traverse(spec) {
+  var _ref2;
+
+  if (typeof spec === 'function') {
+    var _ref;
+
+    return _ref = {}, defineProperty(_ref, selectKey, function (object, next, path, index) {
+      return spec('select', object, next, path, index);
+    }), defineProperty(_ref, updateKey, function (object, next, path, index) {
+      return spec('update', object, next, path, index);
+    }), _ref;
+  }
+  return _ref2 = {}, defineProperty(_ref2, selectKey, spec.select), defineProperty(_ref2, updateKey, spec.update), _ref2;
+};
+
+// Yes, we could make a smple universal curry with `.reduce`, but this is
+// faster.
+
+var curry2 = function curry2(fn) {
+  return function (a, b, sourceObj) {
+    switch (arguments.length) {
+      case 2:
+        return fn(a, b, sourceObj);
+      case 1:
+        return function (_b, _sourceObj) {
+          return fn(a, _b, _sourceObj);
+        };
+      default:
+        return fn;
+    }
+  };
+};
+
+var curry3 = function curry3(fn) {
+  return function (a, b, c, sourceObj) {
+    switch (arguments.length) {
+      case 3:
+        return fn(a, b, c, sourceObj);
+      case 2:
+        return function (_c, _sourceObj) {
+          return fn(a, b, _c, _sourceObj);
+        };
+      case 1:
+        return curry2(function (_b, _c, _sourceObj) {
+          return fn(a, _b, _c, _sourceObj);
+        });
+      default:
+        return fn;
+    }
+  };
+};
+
+var arrayify = function arrayify(value) {
+  return Array.isArray(value) ? value : [value];
+};
+
+var copy = function copy(object) {
+  return Array.isArray(object) ? object.slice(0) : objectAssign({}, object);
+};
+
+var pathKey = '@@qim/navPath';
+
+var $nav = function $nav(path) {
+  var arguments$1 = arguments;
+
+  if (typeof path !== 'function' && !Array.isArray(path)) {
+    if ((typeof path === 'undefined' ? 'undefined' : _typeof(path)) === 'object') {
+      throw new Error('Function or array or primitive is required to create a path navigator.');
+    }
+    path = [path];
+  }
+  var nav = defineProperty({}, pathKey, path);
+  nav.self = nav;
+  if (arguments.length > 1) {
+    var moreNavPaths = [];
+    for (var i = 1; i < arguments.length; i++) {
+      path = arguments$1[i];
+      if (typeof path !== 'function' && !Array.isArray(path)) {
+        if ((typeof path === 'undefined' ? 'undefined' : _typeof(path)) === 'object') {
+          throw new Error('Function or array or primitive is required to create a path navigator.');
+        }
+        path = [path];
+      }
+      moreNavPaths.push(path);
+    }
+    nav.moreNavPaths = moreNavPaths;
+  }
+  return nav;
+};
+
+var $setKey = '@@qim/$setKey';
+
+var $set = function $set(value) {
+  return { '@@qim/nav': $setKey, value: value };
+};
+
+var $defaultKey = '@@qim/$defaultKey';
+
+var $default = function $default(value) {
+  return { '@@qim/nav': $defaultKey, value: value };
+};
+
+var $applyKey = '@@qim/$apply';
+
+var $apply = function $apply(fn) {
+  return { '@@qim/nav': $applyKey, fn: fn };
+};
+
+var $lensKey = '@@qim/$lens';
+
+var $lens = function $lens(fn, fromFn) {
+  return { '@@qim/nav': $lensKey, fn: fn, fromFn: fromFn };
+};
+
+var $setContextKey = '@@qim/$setContext';
+
+var setContext = function setContext(nav, value, context) {
+  context = objectAssign({}, context);
+  context[nav.key] = value;
+  return context;
+};
+
+var identity = function identity(v) {
+  return v;
+};
+
+var $setContext = function $setContext(key) {
+  var fn = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : identity;
+  return { '@@qim/nav': $setContextKey, setContext: setContext, key: key, fn: fn };
+};
+
+var $noneKey = '@@qim/$noneKey';
+
+var $none = { '@@qim/nav': $noneKey };
+
+var isNone = function isNone(value) {
+  return value && value['@@qim/nav'] === $noneKey;
+};
+
+var undefinedIfNone = function undefinedIfNone(value) {
+  return isNone(value) ? undefined : value;
+};
+
+// There's not really any compatibility between `qim` and transducers, but since
+// transducers already had a "reduced" concept, it seemed appropriate to use
+// that convention.
+
+// When looping through object or array values, `reduced` is used to tell the
+// loop that the loop is finished.
+var reduced = function reduced(value) {
+  return {
+    '@@transducer/reduced': true,
+    '@@transducer/value': value
+  };
+};
+
+var isReduced = function isReduced(value) {
+  return value && !!value['@@transducer/reduced'];
+};
+
+// Unwrap a reduced value if necessary.
+var unreduced = function unreduced(value) {
+  return isReduced(value) ? value['@@transducer/value'] : value;
+};
+
+// `traverseEach` is the heart of `qim`. It's a little ugly because it needs to
+// be performant, and it's generic across select and update.
+var traverseEach = function traverseEach(navKey, // select or update?
+state, // state to carry around, so select can add new values
+resultFn, // like a reduce function, called for each selected value
+path, // the whole query
+object, // the current object that we're traversing
+pathIndex, // index into the path
+returnFn, // function to "return" to, if we've navigated into a sub-query
+context, // current context: modified with setContext and passed to transforms
+mutationMarker // performance signal that it's safe to mutate instead of clone
+) {
+
+  if (pathIndex >= path.length) {
+    // If we're in a sub-query (with $nav), we need to return.
+    if (returnFn) {
+      return returnFn(object, context);
+    }
+    // Default to identity if there's no result function.
+    return resultFn ? resultFn(state, object) : object;
+  }
+
+  var nav = path[pathIndex];
+
+  // null/undefined selects/updates nothing.
+  if (nav == null) {
+    return navKey === selectKey ? $none : object;
+  }
+
+  // Primitives are handled right her inside traverseEach to state efficient.
+  if (typeof nav === 'string' || typeof nav === 'number' || typeof nav === 'boolean') {
+    // select, which is pretty simple
+    if (navKey === selectKey) {
+      // If we have an object, just grab the nested object and keep digging.
+      if (object && (typeof object === 'undefined' ? 'undefined' : _typeof(object)) === 'object') {
+        var subObject = object[nav];
+        // Special case so `has` can differentiate between missing keys and keys
+        // pointing to undefined values. Maybe a better way? Maybe just don't
+        // worry about `has(['x'], {x: undefined}) === false`?
+        if (typeof subObject === 'undefined' && !(nav in object) && pathIndex === path.length - 1) {
+          return $none;
+        }
+        return traverseEach(navKey, state, resultFn, path, subObject, pathIndex + 1, returnFn, context);
+      } else {
+        return $none;
+      }
+    }
+    // update, which is not as simple
+    if (object && (typeof object === 'undefined' ? 'undefined' : _typeof(object)) === 'object') {
+      var value = object[nav];
+      // Dig in for the new value.
+      var newValue = traverseEach(navKey, state, resultFn, path, value, pathIndex + 1, returnFn, context);
+      // A new value of $none means we've removed it.
+      if (isNone(newValue)) {
+        if (!(nav in object)) {
+          return object;
+        }
+        if (Array.isArray(object)) {
+          var _newObject2 = object.slice(0);
+          // Could have a silly edge here where nav was a property and not an
+          // index, which means it disappears. If it's still here, that means
+          // it's an index.
+          if (nav in object) {
+            _newObject2.splice(nav, 1);
+          }
+          return _newObject2;
+        }
+        var _newObject = objectAssign({}, object);
+        delete _newObject[nav];
+        return _newObject;
+      }
+      // If we got back the same value, it's a no-op.
+      if (value === newValue) {
+        return object;
+      }
+      // Some dangerous mutation going on here! Be careful!
+      if (mutationMarker) {
+        // If we have a mutation marker, and we've already mutated, then we can
+        // safely mutate and avoid the cost of re-cloning the object.
+        if (mutationMarker.hasMutated) {
+          object[nav] = newValue;
+          return object;
+          // Otherwise, we're going to mutate, so mark that we've mutated.
+        } else {
+          mutationMarker.hasMutated = true;
+        }
+      }
+      // Clone our object and set the property to the new value.
+      var newObject = copy(object);
+      newObject[nav] = newValue;
+      return newObject;
+      // If we got back null/undefined, then intelligently create a new object.
+      // It's debatable on whether or not this is a good idea. Integers used to
+      // auto-create arrays, but that's probably wrong more than right. An
+      // integer like 123456 is probably an id and not an array index, so it's
+      // probably a mistake to create an array of that size. If an array is
+      // actually wanted, `default([])` can be added. We could do nothing, which
+      // would keep you from making typos, but then you have to add a lot of
+      // `default({})`, and then you're right back to being able to make typos.
+      // So defaulting to create an object seems like a sane balance.
+    } else if (object == null) {
+      var _newValue = traverseEach(navKey, state, resultFn, path, undefined, pathIndex + 1, returnFn, context);
+      // Trying to set a key to $none is a no-op.
+      if (isNone(_newValue)) {
+        return object;
+      }
+      var _newObject3 = {};
+      _newObject3[nav] = _newValue;
+      return _newObject3;
+    } else {
+      throw new Error('Cannot update property ' + nav + ' (at path index ' + pathIndex + ') for non-object.');
+    }
+  }
+
+  // Predicate navigator, keep going if there's a match.
+  if (typeof nav === 'function') {
+    if (nav(object)) {
+      return traverseEach(navKey, state, resultFn, path, object, pathIndex + 1, returnFn, context);
+    } else {
+      return navKey === selectKey ? $none : object;
+    }
+  }
+
+  // Some built-in navigators for transform and context.
+  switch (nav['@@qim/nav']) {
+    // Transform the current value into another value.
+    case $applyKey:
+      {
+        return traverseEach(navKey, state, resultFn, path, nav.fn(object, context), pathIndex + 1, returnFn, context);
+      }
+    // Transform the current value into another value.
+    // For updates, apply another transform on the way back.
+    case $lensKey:
+      {
+        var result = traverseEach(navKey, state, resultFn, path, nav.fn(object, context), pathIndex + 1, returnFn, context);
+        if (navKey === selectKey || !nav.fromFn) {
+          return result;
+        }
+        return nav.fromFn(result, object, context);
+      }
+    // Set the current value to a new constant value.
+    case $setKey:
+      return traverseEach(navKey, state, resultFn, path, nav.value, pathIndex + 1, returnFn, context);
+    // Set the current value to a new constant value if the current value is
+    // undefined.
+    case $defaultKey:
+      {
+        if (typeof object === 'undefined') {
+          return traverseEach(navKey, state, resultFn, path, nav.value, pathIndex + 1, returnFn, context);
+        }
+        return traverseEach(navKey, state, resultFn, path, object, pathIndex + 1, returnFn, context);
+      }
+    // Remove the current value.
+    case $noneKey:
+      return $none;
+    // Set a context value, to later be used by $apply.
+    case $setContextKey:
+      {
+        context = nav.setContext(nav, nav.fn(object, context || {}), context);
+        return traverseEach(navKey, state, resultFn, path, object, pathIndex + 1, returnFn, context);
+      }
+  }
+
+  var navPath = nav[pathKey];
+
+  // TODO: Combine this with array navigator.
+  // Path navigators.
+  if (navPath) {
+    // A path navigator can potentially go down multiple paths.
+    var moreNavPaths = nav.moreNavPaths;
+    var moreNavPathsIndex = 0;
+    var navResult = object;
+    do {
+      // If it's a function, get our path dynamically.
+      if (typeof navPath === 'function') {
+        navPath = nav.hasArgs ? navPath(nav.args, object, context) : navPath(object, context);
+        navPath = arrayify(navPath);
+      }
+      // TODO: Use mutationMarker.
+      // An empty query just means continue.
+      if (navPath.length === 0) {
+        navResult = traverseEach(navKey, state, resultFn, path, object, pathIndex + 1, returnFn, context);
+        // Otherwise, recurse in with our new query, but pass a `returnFn` so we can
+        // continue where we left off.
+      } else {
+        navResult = traverseEach(navKey, state, resultFn, navPath, object, 0, function (_object, _context) {
+          return traverseEach(navKey, state, resultFn, path, _object, pathIndex + 1, returnFn, _context);
+        }, context);
+      }
+      if (moreNavPaths) {
+        // Selects should be applied to the same object, since nothing has changed. If we've reduced, then we're done.
+        if (navKey === selectKey) {
+          if (isReduced(navResult)) {
+            return navResult;
+          }
+          // Updates should be applied to the new object.
+        } else {
+          object = undefinedIfNone(navResult);
+        }
+        navPath = moreNavPaths[moreNavPathsIndex];
+        moreNavPathsIndex++;
+      } else {
+        navPath = undefined;
+      }
+    } while (navPath);
+    return navResult;
+  }
+
+  // Core select/update navigator.
+  if (nav[navKey]) {
+    if (nav.hasArgs) {
+      return nav[navKey](nav.args, object, function (subObject) {
+        return traverseEach(navKey, state, resultFn, path, subObject, pathIndex + 1, returnFn, context);
+      }, path, pathIndex);
+    }
+    return nav[navKey](object, function (subObject) {
+      return traverseEach(navKey, state, resultFn, path, subObject, pathIndex + 1, returnFn, context);
+    }, path, pathIndex);
+  }
+
+  // Nested sub-query.
+  if (Array.isArray(nav)) {
+    // A nested select will branch off an add items to the current select state.
+    // So it's semantically a bit different than a nested update sub-query.
+    if (navKey === selectKey) {
+      var subResult = traverseEach(navKey, state, resultFn, nav, object, 0, returnFn, context);
+      if (pathIndex + 1 === path.length) {
+        return subResult;
+      }
+      return traverseEach(navKey, state, resultFn, path, object, pathIndex + 1, returnFn, context);
+    }
+
+    // A nested update will branch off and mutate the object and then return to
+    // the current object. It's kind of just a fancy $apply.
+    // Create a mutation marker so we can efficiently apply many sub-queries to
+    // the current object.
+    mutationMarker = mutationMarker || {
+      hasMutated: false
+    };
+    var nestedResult = undefinedIfNone(traverseEach(navKey, state, resultFn, nav, object, 0, undefined, context, mutationMarker));
+    return traverseEach(navKey, state, resultFn, path, nestedResult, pathIndex + 1, returnFn, context, mutationMarker);
+  }
+
+  throw new Error('Invalid navigator ' + nav + ' at path index ' + pathIndex + '.');
+};
+
+// select is just a traverse that pushes each result onto an array.
+var selectResultFn = function selectResultFn(state, result) {
+  state.push(result);
+  return state;
+};
+
+var select = function select(path, object) {
+  if (path == null) {
+    return object;
+  }
+  path = arrayify(path);
+  var result = [];
+  traverseEach(selectKey, result, selectResultFn, path, object, 0);
+  return result;
+};
+
+var select$1 = curry2(select);
+
+// find is a select that returns a "reduced" envelope as soon as it selects
+// anything.
+var selectFirstResultFn = function selectFirstResultFn(state, result) {
+  return reduced(result);
+};
+
+var find = function find(path, obj) {
+
+  var pathIndex = 0;
+  var key = void 0;
+
+  if (!Array.isArray(path)) {
+    path = [path];
+  }
+
+  // We'll just use an optimized while loop as long as we have simple primitive
+  // navigators.
+  while (pathIndex < path.length) {
+    key = path[pathIndex];
+    // If we have a non-primitive navigator, we'll switch over to a generic
+    // traverse.
+    if (key && typeof key !== 'string' && typeof key !== 'number' && typeof key !== 'boolean') {
+      var selectResult = unreduced(traverseEach(selectKey, null, selectFirstResultFn, path, obj, pathIndex));
+      return isNone(selectResult) ? undefined : selectResult;
+    }
+    if (obj == null) {
+      obj = undefined;
+      break;
+    }
+    obj = obj[key];
+    pathIndex++;
+  }
+
+  return obj;
+};
+
+var find$1 = curry2(find);
+
+// has uses the same reduced envelope as find.
+var selectFirstResultFn$1 = function selectFirstResultFn(state, result) {
+  return reduced(result);
+};
+
+var has = function has(path, obj) {
+
+  var pathIndex = 0;
+  var key = void 0;
+  var parentObj = void 0;
+
+  if (!Array.isArray(path)) {
+    path = [path];
+  }
+
+  // We'll just use an optimized while loop as long as we have simple primitive
+  // navigators.
+  while (pathIndex < path.length) {
+    key = path[pathIndex];
+    // If we have a non-primitive navigator, we'll switch over to a generic
+    // traverse.
+    if (key && typeof key !== 'string' && typeof key !== 'number' && typeof key !== 'boolean') {
+      var selectResult = traverseEach(selectKey, null, selectFirstResultFn$1, path, obj, pathIndex);
+      if (typeof selectResult === 'undefined') {
+        return false;
+      }
+      selectResult = unreduced(selectResult);
+      return isNone(selectResult) ? false : true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    parentObj = obj;
+    obj = obj[key];
+    pathIndex++;
+  }
+
+  if (typeof obj === 'undefined') {
+    if (path.length === 0) {
+      return true;
+    }
+    if (!parentObj || (typeof parentObj === 'undefined' ? 'undefined' : _typeof(parentObj)) !== 'object' || !(key in parentObj)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+var has$1 = curry2(has);
+
+// update is a traverse that has no state or result function.
+var update = function update(path, obj) {
+  return path == null ? obj : undefinedIfNone(traverseEach(updateKey, undefined, undefined, arrayify(path), obj, 0));
+};
+
+var update$1 = curry2(update);
+
+var set$1 = function set$$1(path, value, obj) {
+
+  // Optimized case for a single primitive key.
+  if (!path || (typeof path === 'undefined' ? 'undefined' : _typeof(path)) !== 'object') {
+    if (obj == null || (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) !== 'object') {
+      return obj;
+    }
+
+    if (obj[path] === value) {
+      return obj;
+    }
+
+    obj = copy(obj);
+
+    obj[path] = value;
+
+    return obj;
+  }
+
+  path = Array.isArray(path) ? path : [path];
+
+  return undefinedIfNone(traverseEach(updateKey, undefined, undefined, path, obj, 0, function () {
+    return value;
+  }));
+};
+
+var set$2 = curry3(set$1);
+
+var apply = function apply(path, transform, obj) {
+  path = Array.isArray(path) ? path : [path];
+  return undefinedIfNone(traverseEach(updateKey, undefined, undefined, path, obj, 0, transform));
+};
+
+var apply$1 = curry3(apply);
+
+var pluralize = function pluralize(type) {
+  return type + 's';
+};
+
+var typeName = function typeName(object) {
+  if (object === null) {
+    return 'null';
+  }
+  if (Array.isArray(object)) {
+    return 'array';
+  }
+  return typeof object === 'undefined' ? 'undefined' : _typeof(object);
+};
+
+// Prepend word with "a" or "an".
+var articleize = function articleize(type) {
+  return ('aeiou'.indexOf(type[0]) >= 0 ? 'an' : 'a') + ' ' + type;
+};
+
+// Concatenate types together into a phrase.
+var getSupportedTypesPhrase = function getSupportedTypesPhrase(supportedTypes) {
+  supportedTypes = Array.isArray(supportedTypes) ? supportedTypes : [supportedTypes];
+  var pluralTypes = supportedTypes.map(function (type) {
+    return pluralize(type);
+  });
+
+  if (pluralTypes.length === 1) {
+    return pluralTypes[0];
+  }
+
+  if (pluralTypes.length === 2) {
+    return pluralTypes[0] + ' and ' + pluralTypes[1];
+  }
+
+  return pluralTypes.slice(0, pluralTypes.length - 1).join(', ').concat(', and ' + pluralTypes[pluralTypes.length - 1]);
+};
+
+// Get error message saying what types a function supports.
+var getTypeErrorMessage = function getTypeErrorMessage(name, supportedTypes, object) {
+  return [name, ' only supports ', getSupportedTypesPhrase(supportedTypes), ', but ', articleize(typeName(object)), ' was provided.'].join('');
+};
+
+var reduceSequence = function reduceSequence(eachFn, initialValue, seq) {
+  var result = initialValue;
+  if (Array.isArray(seq)) {
+    for (var i = 0; i < seq.length; i++) {
+      result = eachFn(result, i);
+      if (isReduced(result)) {
+        return result;
+      }
+    }
+  } else if (seq !== null && (typeof seq === 'undefined' ? 'undefined' : _typeof(seq)) === 'object') {
+    for (var key in seq) {
+      if (seq.hasOwnProperty(key)) {
+        result = eachFn(result, key);
+        if (isReduced(result)) {
+          return result;
+        }
+      }
+    }
+  } else {
+    throw new Error(getTypeErrorMessage('reduceSequence', ['object', 'array'], seq));
+  }
+  return result;
+};
+
+// When an item is removed from an array or object, `removed` is used to mark
+// it as being removed. This is useful, for example, so that we can remove an
+// item inside a loop without affecting the affecting the item count. We could
+// use $none for this, but `removed` specifically exists to allow you to store
+// $none in an array/object and still have `qim` work correctly. So what if you
+// want to store `removed` in your array/object? That's just silly. :-P
+var removed = {
+  '@@qim/removed': true
+};
+
+
+
+var isNotRemoved = function isNotRemoved(value) {
+  return !value || !value['@@qim/removed'];
+};
+
+var $each = $traverse({
+  select: function select(object, next) {
+    // Pass each value along to the next navigator.
+    return reduceSequence(function (result, key) {
+      return next(object[key]);
+    }, undefined, object);
+  },
+  update: function update(object, next) {
+    var isArray = Array.isArray(object);
+    // Marker for if we removed values from an array. Since we filter out
+    // removed values, we don't want to do that iteration if we don't have to.
+    // Maybe there's a better way to do this, but removing array values in place
+    // is kind of ugly, since positions change.
+    var didRemoveValues = false;
+    var newObject = reduceSequence(function (result, key) {
+      var newValue = next(object[key]);
+      var isNewValueNone = isNone(newValue);
+      // This is a no-op unless we actually have a different value. The
+      // `isNoneValue` covers a goofy edge where you might have the value $none
+      // stored in the object/array. In that case, it would match, but we still
+      // want to remove it.
+      if (newValue !== object[key] || isNewValueNone) {
+        // Create a new object if we haven't done that yet.
+        if (object === result) {
+          result = copy(result);
+        }
+
+        if (isNewValueNone) {
+          // For arrays, we'll store a removed value so indexes don't get wonky.
+          if (isArray) {
+            result[key] = removed;
+            didRemoveValues = true;
+            // Otherwise, we'll just delete it now.
+          } else {
+            delete result[key];
+          }
+        } else {
+          result[key] = newValue;
+        }
+      }
+      return result;
+    }, object, object);
+    // Filter our removed values from arrays.
+    if (isArray && didRemoveValues) {
+      return newObject.filter(isNotRemoved);
+    }
+    return newObject;
+  }
+});
+
+var $eachKey = $traverse({
+  select: function select(object, next) {
+    // Pass each key along to the next navigator.
+    return reduceSequence(function (result, key) {
+      return next(key);
+    }, undefined, object);
+  },
+  update: function update(object, next) {
+    var isArray = Array.isArray(object);
+    // Marker for if we removed keys from an array. Since we filter out
+    // removed keys, we don't want to do that iteration if we don't have to.
+    // Maybe there's a better way to do this, but removing array values in place
+    // is kind of ugly, since positions change.
+    var didRemoveKeys = false;
+    var newObject = reduceSequence(function (result, key) {
+      var newKey = next(key);
+      // Undefined/null key doesn't make much sense, so treat it as $none.
+      var isKeyNone = isNone(newKey) || newKey == null;
+      // Marker for if we removed values from an array. Since we filter out
+      // removed values, we don't want to do that iteration if we don't have to.
+      // Maybe there's a better way to do this, but removing array values in place
+      // is kind of ugly, since positions change.
+      didRemoveKeys = didRemoveKeys || isKeyNone;
+      // This is a no-op unless we actually have a different key.
+      if (newKey !== key) {
+        // Create a new object if we haven't done that yet.
+        if (object === result) {
+          result = copy(result);
+        }
+        // For arrays, we'll store a removed value so indexes don't get wonky.
+        if (isArray) {
+          result[key] = removed;
+          didRemoveKeys = true;
+          // Otherwise, we'll just delete it now.
+        } else {
+          delete result[key];
+        }
+        // If we have a new key, point the new key to the value of the old key.
+        if (!isKeyNone) {
+          result[newKey] = object[key];
+        }
+      }
+      return result;
+    }, object, object);
+    // Filter our removed values from arrays.
+    if (isArray && didRemoveKeys) {
+      return newObject.filter(isNotRemoved);
+    }
+    return newObject;
+  }
+});
+
+var $eachPair = $traverse({
+  select: function select(object, next) {
+    // Pass each pair along to the next navigator.
+    return reduceSequence(function (result, key) {
+      return next([key, object[key]]);
+    }, undefined, object);
+  },
+  update: function update(object, next) {
+    var isArray = Array.isArray(object);
+    // Marker for if we removed pairs from an array. Since we filter out
+    // removed pairs, we don't want to do that iteration if we don't have to.
+    // Maybe there's a better way to do this, but removing array values in place
+    // is kind of ugly, since positions change.
+    var didRemovePairs = false;
+    var newObject = reduceSequence(function (result, key) {
+      var value = object[key];
+      var pair = [key, value];
+      var newPair = next(pair);
+      var newKey = void 0;
+      var newValue = void 0;
+      // Undefined/null pair will result in undefined key, which will be
+      // treated as $none.
+      if (newPair != null) {
+        newKey = newPair[0];
+        newValue = newPair[1];
+      }
+      var isPairNone =
+      // Undefined/null key doesn't make much sense, so treat it as $none.
+      newKey == null || isNone(newPair) ||
+      // isNone(newValue) covers a goofy edge where you might have the value
+      // $none stored in an object/array. In that case, it would match, but we
+      // still want to remove it.
+      isNone(newValue);
+      // This is a no-op unless we actually have a different value or key.
+      if (newKey !== key || newValue !== value || isPairNone) {
+        // Create a new object if we haven't done that yet.
+        if (object === result) {
+          result = copy(result);
+        }
+        if (newKey !== key) {
+          // For arrays, we'll store a removed value so indexes don't get wonky.
+          if (isArray) {
+            result[key] = removed;
+            didRemovePairs = true;
+            // Otherwise, we'll just delete it now.
+          } else {
+            delete result[key];
+          }
+        }
+        // If we haven't removed the key or value, then set the new key to the
+        // new value.
+        if (!isPairNone) {
+          result[newKey] = newValue;
+        }
+      }
+      return result;
+    }, object, object);
+    // Filter our removed values from arrays.
+    if (isArray && didRemovePairs) {
+      return newObject.filter(isNotRemoved);
+    }
+    return newObject;
+  }
+});
+
+var createMerge = function createMerge() {
+  var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+      _ref$isDeep = _ref.isDeep,
+      isDeep = _ref$isDeep === undefined ? false : _ref$isDeep;
+
+  var isShallow = !isDeep;
+  var merge = function merge(spec, object) {
+    if (spec && (typeof spec === 'undefined' ? 'undefined' : _typeof(spec)) === 'object' && object && (typeof object === 'undefined' ? 'undefined' : _typeof(object)) === 'object') {
+      var newObject = object;
+      for (var key in spec) {
+        if (spec.hasOwnProperty(key)) {
+          var mergeValue = isShallow ? spec[key] : merge(spec[key], object[key]);
+          if (newObject[key] !== mergeValue) {
+            // Create a new object if we haven't done that yet.
+            if (newObject === object) {
+              newObject = copy(object);
+            }
+            newObject[key] = mergeValue;
+          }
+        }
+      }
+      return newObject;
+    }
+    return spec;
+  };
+  return merge;
+};
+
+var merge = createMerge();
+
+var $merge = function $merge(spec) {
+  return $traverse(function (type, object, next) {
+    return next(merge(spec, object));
+  });
+};
+
+var mergeDeep = createMerge({ isDeep: true });
+
+var $mergeDeep = function $mergeDeep(spec) {
+  return $traverse(function (type, object, next) {
+    return next(mergeDeep(spec, object));
+  });
+};
+
+var $begin = $traverse({
+  select: function select(object, next) {
+    if (Array.isArray(object)) {
+      return next([]);
+    }
+    throw new Error(getTypeErrorMessage('$begin', 'array', object));
+  },
+  update: function update(object, next) {
+    if (Array.isArray(object)) {
+      var beginArray = next([]);
+      if (beginArray && beginArray.length === 0) {
+        return object;
+      }
+      if (!beginArray || typeof beginArray === 'string' || typeof beginArray.concat !== 'function') {
+        return [beginArray].concat(object);
+      }
+      return beginArray.concat(object);
+    }
+    throw new Error(getTypeErrorMessage('$begin', 'array', object));
+  }
+});
+
+var $end = $traverse({
+  select: function select(object, next) {
+    if (Array.isArray(object)) {
+      return next([]);
+    }
+    throw new Error(getTypeErrorMessage('$end', 'array', object));
+  },
+  update: function update(object, next) {
+    if (Array.isArray(object)) {
+      var endArray = next([]);
+      if (endArray && endArray.length === 0) {
+        return object;
+      }
+      return object.concat(endArray);
+    }
+    throw new Error(getTypeErrorMessage('$end', 'array', object));
+  }
+});
+
+// Special purpose utility to look at the current path and index and determine
+// if the next navigator is a constant value. This is so a navigator can
+// "cheat" a little and lookahead to determine if its value will actually be
+// used. If not, the navigator can avoid calculating its own value.
+var isNextNavigatorConstant = (function (path, index) {
+  if (index + 1 < path.length) {
+    var nextNav = path[index + 1];
+    if (nextNav) {
+      var navKey = nextNav['@@qim/nav'];
+      if (navKey === $noneKey || navKey === $setKey) {
+        return true;
+      }
+    }
+  }
+  return false;
+});
+
+var eachArg = function eachArg(fn, args, object) {
+  for (var i = 0; i < args.length; i++) {
+    var arg = args[i];
+    if (Array.isArray(arg)) {
+      for (var j = 0; j < arg.length; j++) {
+        var subArg = arg[j];
+        if (subArg in object) {
+          fn(subArg);
+        }
+      }
+    } else {
+      if (arg in object) {
+        fn(arg);
+      }
+    }
+  }
+};
+
+var $pick = function $pick() {
+  var arguments$1 = arguments;
+
+  for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+    args[_key] = arguments$1[_key];
+  }
+
+  return $traverse({
+    select: function select(object, next) {
+      var picked = {};
+      eachArg(function (key) {
+        picked[key] = object[key];
+      }, args, object);
+      return next(picked);
+    },
+    update: function update(object, next, path, index) {
+      // Is it worth avoiding cloning if nothing changes?
+      var newObject = copy(object);
+      // We cheat a little and look ahead to see if `next` is going to return
+      // a constant. If it is, then there's no reason to get a proper pick of
+      // the object, because we know it won't be used anyway.
+      // CONSIDER THIS AN EXPERIMENT. DON'T USE IT IN YOUR NAVIGATORS.
+      if (isNextNavigatorConstant(path, index)) {
+        (function () {
+          // Call `next` with no args, because it's a constant.
+          var newPicked = next();
+          if (isNone(newPicked) || newPicked == null) {
+            // Delete all picked keys.
+            eachArg(function (key) {
+              delete newObject[key];
+            });
+          } else {
+            if ((typeof newPicked === 'undefined' ? 'undefined' : _typeof(newPicked)) !== 'object') {
+              throw new Error('$pick expected next navigator to return an object. Did you forget $each?');
+            }
+            // Delete any removed properties.
+            eachArg(function (key) {
+              if (!(key in newPicked)) {
+                delete newObject[key];
+              }
+            }, args, object);
+            // Mix in the new properties.
+            objectAssign(newObject, newPicked);
+          }
+          // Otherwise, we do have to slice the array so it can be passed to `next`.
+        })();
+      } else {
+        (function () {
+          var pickedKeys = [];
+          var picked = {};
+          eachArg(function (key) {
+            pickedKeys.push(key);
+            picked[key] = object[key];
+          }, args, object);
+          var newPicked = next(picked);
+          if (isNone(newPicked) || newPicked == null) {
+            // Delete all picked keys
+            pickedKeys.forEach(function (key) {
+              delete newObject[key];
+            });
+          } else {
+            if ((typeof newPicked === 'undefined' ? 'undefined' : _typeof(newPicked)) !== 'object') {
+              throw new Error('$pick expected next navigator to return an object. Did you forget $each?');
+            }
+            // Delete any removed properties.
+            pickedKeys.forEach(function (key) {
+              if (!(key in newPicked)) {
+                delete newObject[key];
+              }
+            });
+            // Mix in the new properties.
+            objectAssign(newObject, newPicked);
+          }
+        })();
+      }
+      return newObject;
+    }
+  });
+};
+
+var $slice = function $slice(begin, end) {
+  return $traverse({
+    select: function select(object, next) {
+      if (object && typeof object.slice === 'function') {
+        return next(object.slice(begin, end));
+      }
+      throw new Error(getTypeErrorMessage('$slice', 'array', object));
+    },
+    update: function update(object, next, path, index) {
+      // Is it worth avoiding cloning if nothing changes?
+      if (object && typeof object.slice === 'function') {
+        var newArray = object.slice(0);
+        var spliceBegin = typeof begin === 'undefined' ? 0 : begin;
+        // We cheat a little and look ahead to see if `next` is going to return
+        // a constant. If it is, then there's no reason to get a proper slice of
+        // the array, because we know it won't be used anyway.
+        // CONSIDER THIS AN EXPERIMENT. DON'T USE IT IN YOUR NAVIGATORS.
+        // It actually doesn't seem to help that much unless the slice is huge.
+        if (isNextNavigatorConstant(path, index)) {
+          // Call `next` with no args, because it's a constant.
+          var newSlice = next();
+          // Splice in the new array.
+          newArray.splice.apply(newArray, [spliceBegin, end - begin].concat(toConsumableArray(newSlice)));
+          // Otherwise, we do have to slice the array so it can be passed to `next`.
+        } else {
+          // Create a slice.
+          var slice = object.slice(begin, end);
+          // And pass it to `next`.
+          var _newSlice = next(slice);
+          // Splice in the new array.
+          newArray.splice.apply(newArray, [spliceBegin, slice.length].concat(toConsumableArray(_newSlice)));
+        }
+        return newArray;
+      }
+      throw new Error(getTypeErrorMessage('$slice', 'array', object));
+    }
+  });
+};
+
+var $first = $nav(function (seq) {
+  if (!seq || (typeof seq === 'undefined' ? 'undefined' : _typeof(seq)) !== 'object') {
+    throw new Error(getTypeErrorMessage('$first', 'object', seq));
+  }
+  if (Array.isArray(seq)) {
+    return [0];
+  }
+  for (var key in seq) {
+    if (seq.hasOwnProperty(key)) {
+      return [key];
+    }
+  }
+  return undefined;
+});
+
+var $last = $nav(function (seq) {
+  if (!seq || (typeof seq === 'undefined' ? 'undefined' : _typeof(seq)) !== 'object') {
+    throw new Error(getTypeErrorMessage('$last', 'object', seq));
+  }
+  if (Array.isArray(seq)) {
+    return [seq.length - 1];
+  }
+  var keys = Object.keys(seq);
+  return keys[keys.length - 1];
+});
+
+var identity$1 = function identity(v) {
+  return v;
+};
+
+var $pushContext = function $pushContext(key) {
+  var fn = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : identity$1;
+  return $setContext(key, function (obj, ctx) {
+    return (ctx[key] || []).concat(fn(obj, ctx));
+  });
+};
+
+// Core API
+
+exports.select = select$1;
+exports.find = find$1;
+exports.has = has$1;
+exports.update = update$1;
+exports.set = set$2;
+exports.apply = apply$1;
+exports.$each = $each;
+exports.$eachKey = $eachKey;
+exports.$eachPair = $eachPair;
+exports.$apply = $apply;
+exports.$set = $set;
+exports.$none = $none;
+exports.$default = $default;
+exports.$merge = $merge;
+exports.$mergeDeep = $mergeDeep;
+exports.$begin = $begin;
+exports.$end = $end;
+exports.$pick = $pick;
+exports.$slice = $slice;
+exports.$first = $first;
+exports.$last = $last;
+exports.$setContext = $setContext;
+exports.$pushContext = $pushContext;
+exports.$nav = $nav;
+exports.$lens = $lens;
+exports.$traverse = $traverse;
+exports.isReduced = isReduced;
+});
+
+unwrapExports(index$1);
+var select = index$1.select;
+var find = index$1.find;
+var index_3 = index$1.has;
+var update = index$1.update;
+var set = index$1.set;
+var apply = index$1.apply;
+var $each = index$1.$each;
+var index_8 = index$1.$eachKey;
+var $eachPair = index$1.$eachPair;
+var $apply = index$1.$apply;
+var index_11 = index$1.$set;
+var index_12 = index$1.$none;
+var index_13 = index$1.$default;
+var $merge = index$1.$merge;
+var index_15 = index$1.$mergeDeep;
+var index_16 = index$1.$begin;
+var index_17 = index$1.$end;
+var $pick = index$1.$pick;
+var index_19 = index$1.$slice;
+var index_20 = index$1.$first;
+var index_21 = index$1.$last;
+var index_22 = index$1.$setContext;
+var index_23 = index$1.$pushContext;
+var index_24 = index$1.$nav;
+var index_25 = index$1.$lens;
+var index_26 = index$1.$traverse;
+var index_27 = index$1.isReduced;
 
 var champions = [
   {
@@ -7259,46 +8590,23 @@ var spells = [
   }
 ];
 
-var immutable = extend
-
-var hasOwnProperty = Object.prototype.hasOwnProperty;
-
-function extend() {
-    var arguments$1 = arguments;
-
-    var target = {}
-
-    for (var i = 0; i < arguments.length; i++) {
-        var source = arguments$1[i]
-
-        for (var key in source) {
-            if (hasOwnProperty.call(source, key)) {
-                target[key] = source[key]
-            }
-        }
-    }
-
-    return target
-}
-
 var proxyUrl = 'https://wt-ngryman-gmail_com-0.run.webtask.io/riot-proxy'
 
-var nextEnnemyUid = 0
-var nextSpellUid = 0
+var nextEnnemyId = 0
 
-function createChampion(id) {
-  var champion = champions.find(function (c) { return c.key === String(id); })
-  return immutable({}, champion)
-}
-
-function createSpell(id) {
-  var spell = spells.find(function (s) { return s.key === String(id); })
-  return immutable({}, spell, {
-    uid: nextSpellUid++,
-    state: 'available',
-    cooldown: 0,
-    refCooldown: spell.cooldown
-  })
+function createEnnemy(participant) {
+  return {
+    id: nextEnnemyId++,
+    name: participant.summonerName,
+    champion: find(
+      [$each, function (champion) { return champion.key === String(participant.championId); }],
+      champions
+    ),
+    spells: [
+      participant.spell1Id,
+      participant.spell2Id
+    ]
+  }
 }
 
 var endpoint = function (type, region) {
@@ -7361,17 +8669,15 @@ var fetchGame = function (summoner, region) {
 
       var ennemies = participants
         .filter(function (participant) { return participant.teamId !== summonerTeam; })
-        .map(function (participant) { return ({
-          uid: nextEnnemyUid++,
-          name: participant.summonerName,
-          champion: createChampion(participant.championId),
-          spells: [
-            createSpell(participant.spell1Id),
-            createSpell(participant.spell2Id)
-          ]
-        }); })
+        .map(createEnnemy)
 
-      return { id: gameId, ennemies: ennemies }
+      var spellsHash = spells.reduce(function (hash, spell) {
+        spell.key = Number(spell.key)
+        hash[spell.key] = spell
+        return hash
+      }, {})
+
+      return { gameId: gameId, ennemies: ennemies, spells: spellsHash }
     }, function (status) {
       if (status >= 400) {
         throw new Error('No live game found')
@@ -7379,150 +8685,163 @@ var fetchGame = function (summoner, region) {
     })
 }
 
-var app$2 = {
-  update: function (state, actions, app) { return (Object.assign({}, state,
-    {app: Object.assign({}, state.app,
-      app)})); },
+var data$1 = {
+  fetch: function (state, actions, user) {
+    return fetchSummoner(user)
+      .then(function (summoner) { return fetchGame(summoner, user.region); })
+      .then(function (ref) {
+        var gameId = ref.gameId;
+        var ennemies = ref.ennemies;
+        var spells = ref.spells;
 
-  load: function (state, actions) {
-    actions.app.update({ loading: true })
+        actions.data.game.set({ id: gameId })
+        actions.data.ennemies.set(ennemies)
+        actions.data.spells.set(spells)
+      })
   },
 
-  error: function (state, actions, message) {
-    actions.app.update({ loading: false, error: message })
+  user: {
+    setName: function (state, actions, userName) { return (
+      set(['data', 'user', 'name'], userName, state)
+    ); },
+
+    setRegion: function (state, actions, userRegion) { return (
+      set(['data', 'user', 'region'], userRegion, state)
+    ); }
   },
 
-  reset: function (state, actions) {
-    actions.app.update({ loading: false, error: '' })
+  game: {
+    set: function (state, actions, game) { return (
+      set(['data', 'game'], game, state)
+    ); }
+  },
+
+  ennemies: {
+    set: function (state, actions, ennemies) { return (
+      set(['data', 'ennemies'], ennemies, state)
+    ); }
+  },
+
+  spells: {
+    set: function (state, actions, spells) { return (
+      set(['data', 'spells'], spells, state)
+    ); }
   }
 }
-
-/* ────────────────────────────────────────────────────────────────────────── */
-
-var user$1 = {
-  update: function (state, actions, user) { return (Object.assign({}, state,
-    {user: Object.assign({}, state.user,
-      user)})); }
-}
-
-/* ────────────────────────────────────────────────────────────────────────── */
 
 var spellAudio = new Audio('sounds/spell.ogg')
 
 var intervalId = null
-var numCooldowns = 0
+var totalTimers = 0
 
-var decrementer = function (amount, uid) {
-  if ( uid === void 0 ) uid = null;
+function attachTimer(actions) {
+  totalTimers++
+  if (null === intervalId) {
+    intervalId = setInterval(function () {
+      actions.ui.track.tick()
+    }, 1000)
+  }
+}
 
-  return function (spell) {
-  if ('cooldown' !== spell.state) { return spell }
-  if (uid && spell.uid !== uid) { return spell }
+function detachTimer() {
+  totalTimers--
+  if (totalTimers <= 0) {
+    clearInterval(intervalId)
+    intervalId = null
+  }
+}
 
-  spell.cooldown -= amount
+function detachAllTimers() {
+  totalTimers = 0
+  detachTimer()
+}
 
-  if (spell.cooldown <= 0) {
-    spell.cooldown = 0
-    spell.state = 'available'
+function updateTimer(timer, delta) {
+  if ('cooldown' !== timer.state) { return timer }
 
-    numCooldowns--
-    if (0 === numCooldowns) {
-      clearInterval(intervalId)
-    }
+  timer.time -= delta
 
+  if (timer.time <= 0) {
+    timer.time = 0
+    timer.state = 'available'
+
+    detachTimer()
     spellAudio.play()
   }
 
-  return spell
-};
+  return timer
 }
 
-var game$1 = {
-  update: function (state, actions, game) { return (Object.assign({}, state,
-    {game: Object.assign({}, state.game,
-      game)})); },
+var ui$1 = {
+  home: {
+    load: function (state, actions) { return (
+      update(['ui', 'home', $merge({ loading: true, error: '' })], state)
+    ); },
 
-  updateEnnemy: function (state, actions, updater) { return (Object.assign({}, state,
-    {game: Object.assign({}, state.game,
-      {ennemies: state.game.ennemies.map(updater)})})); },
+    loadEnd: function (state, actions) { return (
+      set(['ui', 'home', 'loading'], false, state)
+    ); },
 
-  updateSpell: function (state, actions, updater) { return (Object.assign({}, state,
-    {game: Object.assign({}, state.game,
-      {ennemies: state.game.ennemies.map(function (ennemy) { return (Object.assign({}, ennemy,
-        {spells: ennemy.spells.map(updater)})); })})})); },
-
-  fetch: function (ref, actions) {
-    var user = ref.user;
-
-    actions.app.load()
-    return fetchSummoner(user)
-      .then(function (summoner) { return fetchGame(summoner, user.region); })
-      .then(function (game) {
-        actions.game.update(game)
-        actions.app.reset()
-      })
+    error: function (state, actions, message) { return (
+      update(['ui', 'home', $merge({ loading: false, error: message })], state)
+    ); }
   },
 
-  startTimer: function (ref, actions) {
-    var game = ref.game;
+  track: {
+    toggleFocus: function (state, actions, id) { return (
+      apply(['ui', 'track', 'focuses', id], function (focus) { return !focus; }, state)
+    ); },
 
-    if (null === intervalId) {
-      intervalId = setInterval(function () {
-        actions.game.updateSpell(decrementer(1))
-      }, 1000)
-    }
-  },
+    startTimer: function (state, actions, infos) {
+      attachTimer(actions)
+      return set(['ui', 'track', 'timers', infos.ennemyId, infos.key], {
+        time: infos.cooldown,
+        cooldown: infos.cooldown,
+        state: 'cooldown'
+      }, state)
+    },
 
-  startCooldown: function (state, actions, ref) {
-    var uid = ref.uid;
-    var refCooldown = ref.refCooldown;
+    forwardTimer: function (state, actions, infos) { return (
+      apply(
+        ['ui', 'track', 'timers', infos.ennemyId, infos.key],
+        function (timer) { return updateTimer(timer, infos.delta); },
+        state
+      )
+    ); },
 
-    actions.game.updateSpell(function (spell) {
-      if (spell.uid === uid) {
-        if ('cooldown' === spell.state) { return spell }
+    clearTimers: function (state, actions) {
+      detachAllTimers()
+      return set(['ui', 'track', 'timers'], {})
+    },
 
-        numCooldowns++
+    tick: function (state, actions) { return (
+      apply(['ui', 'track', 'timers', $eachPair ], function (ref) {
+        var _ = ref[0];
+        var timers = ref[1];
 
-        return Object.assign({}, spell,
-          {state: 'cooldown',
-          cooldown: refCooldown - 1})
-      }
+        return (
+        [_, apply([$eachPair], function (ref) {
+          var _ = ref[0];
+          var timer = ref[1];
 
-      return spell
-    })
-
-    actions.game.startTimer()
-  },
-
-  decrementCooldown: function (state, actions, ref) {
-    var uid = ref.spell.uid;
-    var amount = ref.amount;
-
-    actions.game.updateSpell(decrementer(10, uid))
-  },
-
-  toggleFocus: function (state, actions, ref) {
-    var uid = ref.uid;
-
-    actions.game.updateEnnemy(function (ennemy) {
-      if (ennemy.uid === uid) {
-        return Object.assign({}, ennemy,
-          {focused: !ennemy.focused})
-      }
-
-      return ennemy
-    })
+          return (
+          [_, updateTimer(timer, 1)]
+        );
+        }, timers)]
+      );
+      }, state)
+    ); }
   }
 }
 
 
+
 var actions = Object.freeze({
-  app: app$2,
-  user: user$1,
-  game: game$1
+	data: data$1,
+	ui: ui$1
 });
 
-var __moduleExports$11 = attributeToProperty
+var __moduleExports$12 = attributeToProperty
 
 var transform = {
   'class': 'className',
@@ -7557,13 +8876,13 @@ var ATTR_EQ = 11;
 var ATTR_BREAK = 12;
 var COMMENT = 13
 
-var index$1 = function (h, opts) {
+var index$3 = function (h, opts) {
   if (!opts) { opts = {} }
   var concat = opts.concat || function (a, b) {
     return String(a) + String(b)
   }
   if (opts.attrToProp !== false) {
-    h = __moduleExports$11(h)
+    h = __moduleExports$12(h)
   }
 
   return function (strings) {
@@ -7826,7 +9145,7 @@ var closeRE = RegExp('^(' + [
 ].join('|') + ')(?:[\.#][a-zA-Z0-9\u007F-\uFFFF_:-]+)*$')
 function selfClosing (tag) { return closeRE.test(tag) }
 
-var html = index$1(h, { attrToProp: false })
+var html = index$3(h, { attrToProp: false })
 
 var Use = function (ref) {
 	var href = ref.href;
@@ -7836,7 +9155,7 @@ var Use = function (ref) {
 
 var HomeHeader = function () { return html(["\n<div class=\"home-header\">\n  <svg class=\"logo\" width=\"96px\" height=\"141px\">\n    ", "\n  </svg>\n  <h1 class=\"title\">noflash</h1>\n</div>\n"], Use({ href: '#icon-logo' })); }
 
-var index$2 = createCommonjsModule(function (module) {
+var index$4 = createCommonjsModule(function (module) {
 /*!
   Copyright (c) 2016 Jed Watson.
   Licensed under the MIT License (MIT), see
@@ -7897,30 +9216,38 @@ var handleSubmit = function (e, user, actions) {
   e.preventDefault()
 
   if (user.name) {
-    actions.game.fetch()
-      .then(function () { return actions.router.go('/track'); })
-      .catch(function (err) { return actions.app.error(err.message); })
+    actions.ui.home.load()
+    actions.data.fetch(user)
+      .then(function () {
+        actions.ui.home.loadEnd()
+        actions.router.go('/track')
+      })
+      .catch(function (err) { return actions.ui.home.error(err.message); })
   }
   else {
-    actions.app.error('Empty summoner name')
+    actions.ui.home.error('Empty summoner name')
   }
 }
 
-var classVariants = function (app) { return index$2(( obj = {}, obj["-loading"] = app.loading, obj ))
-  var obj;; }
+var classVariants = function (ref) {
+  var loading = ref.loading;
+
+  return index$4(( obj = {}, obj["-loading"] = loading, obj ))
+  var obj;;
+}
 
 var Region = function (region, selected) { return html(["\n<option ", ">", "</option>\n"], selected ? 'selected' : '', region); }
 
 var HomeForm = function (ref, actions) {
-  var app = ref.app;
-  var user = ref.user;
+  var ui = ref.ui;
+  var data = ref.data;
 
-  return html(["\n<form class=\"home-form ", "\"\n  onsubmit=", ">\n  <fieldset class=\"fieldset\">\n    <input class=\"input\"\n      value=", "\n      placeholder=\"Summoner name\"\n      ", "\n      oninput=", " />\n    <select class=\"regions\"\n      onchange=", ">\n      ", "\n    </select>\n  </fieldset>\n  <button class=\"submit\">Start</button>\n</form>\n"], classVariants(app), function (e) { return handleSubmit(e, user, actions); }, user.name, app.loading ? 'disabled' : '', function (e) { return actions.user.update({ name: e.target.value }); }, function (e) { return actions.user.update({ region: e.target.value }); }, regions.map(function (region) { return Region(region, region === user.region); }));
+  return html(["\n<form class=\"home-form ", "\"\n  onsubmit=", ">\n  <fieldset class=\"fieldset\">\n    <input class=\"input\"\n      value=", "\n      placeholder=\"Summoner name\"\n      ", "\n      oninput=", " />\n    <select class=\"regions\"\n      onchange=", ">\n      ", "\n    </select>\n  </fieldset>\n  <button class=\"submit\">Start</button>\n</form>\n"], classVariants(ui.home), function (e) { return handleSubmit(e, data.user, actions); }, data.user.name, ui.home.loading ? 'disabled' : '', function (e) { return actions.data.user.setName(e.target.value); }, function (e) { return actions.data.user.setRegion(e.target.value); }, regions.map(function (region) { return Region(region, region === data.user.region); }));
 }
 
 var Error$1 = function (error) { return html(["\n<div class=\"error\">", "</div>\n"], error); }
 
-var HomeScreen = function (state, actions) { return html(["\n<section class=\"home-screen\">\n  ", "\n  ", "\n  ", "\n</section>\n"], HomeHeader(), HomeForm(state, actions), state.app.error ? Error$1(state.app.error) : ''); }
+var HomeScreen = function (state, actions) { return html(["\n<section class=\"home-screen\">\n  ", "\n  ", "\n  ", "\n</section>\n"], HomeHeader(), HomeForm(state, actions), state.ui.home.error ? Error$1(state.ui.home.error) : ''); }
 
 var List = function (component, ref) {
   var className = ref.className;
@@ -7928,23 +9255,32 @@ var List = function (component, ref) {
   return function (items, state, actions) { return html(["\n<ul class=\"", "\">\n  ", "\n</ul>\n"], className, items.map(function (item) { return component(item, state, actions); })); };
 }
 
-var handleClick$1 = function (e, spell, actions) {
+var selectTimer = function (spell, state) { return (
+  find(['ui', 'track', 'timers', spell.ennemyId, spell.key], state) || {}
+); }
+
+var handleClick$1 = function (e, spell, timer, actions) {
   e.stopPropagation()
 
-  if ('cooldown' === spell.state) {
-    actions.game.decrementCooldown({ spell: spell, amount: 10 })
+  var timerInfos = find([$pick('ennemyId', 'key')], spell)
+
+  if ('cooldown' === timer.state) {
+    actions.ui.track.forwardTimer(Object.assign({}, timerInfos, {delta: 10}))
   }
   else {
-    actions.game.startCooldown(spell)
+    actions.ui.track.startTimer(Object.assign({}, timerInfos, {cooldown: spell.cooldown}))
   }
 }
 
-var classVariants$2 = function (spell) { return index$2(( obj = {}, obj[("-" + (spell.id))] = true, obj[("-" + (spell.state))] = true, obj["-time60"] = spell.cooldown <= 60 && spell.cooldown > 30, obj["-time30"] = spell.cooldown <= 30 && spell.cooldown > 0, obj ))
+var classVariants$2 = function (spell, timer) { return index$4(( obj = {
+  '-time60': timer.time <= 60 && spell.time > 30,
+  '-time30': timer.time <= 30 && spell.time > 0
+}, obj[("-" + (spell.id))] = true, obj[("-" + (timer.state))] = true, obj ))
   var obj;; }
 
-var Cooldown = function (spell) {
+var Cooldown = function (timer) {
   var r = 50
-  var t = 1 - spell.cooldown / spell.refCooldown
+  var t = 1 - timer.time / timer.cooldown
   var a = t * Math.PI * 2
   var m = a > Math.PI ? 1 : 0
   var x = Math.sin(a) * r
@@ -7954,32 +9290,47 @@ var Cooldown = function (spell) {
 }
 
 var Time = function (spell) {
-  var s = ('0' + (spell.cooldown % 60)).slice(-2)
-  var m = spell.cooldown / 60 | 0
+  var s = ('0' + (spell.time % 60)).slice(-2)
+  var m = spell.time / 60 | 0
 
   return html(["\n  <span class=\"time\">", "</span>\n  "], m > 0 ? (m + ":" + s) : s)
 }
 
-var Spell = function (spell, ennemy, actions) { return html(["\n<li class=\"spell-item ", "\"\n  onclick=", ">\n  ", "\n  <svg class=\"icon\">\n    ", "\n  </svg>\n  ", "\n</li>\n"], classVariants$2(spell), function (e) { return handleClick$1(e, spell, actions); }, 'cooldown' === spell.state ? Cooldown(spell) : '', Use({ href: ("#svg-" + (spell.id)) }), 'cooldown' === spell.state && ennemy.focused ? Time(spell) : ''); }
+var Spell = function (spell, state, actions) {
+  var timer = selectTimer(spell, state)
+  var focused = state.ui.track.focuses[spell.ennemyId]
+
+  return html(["\n  <li class=\"spell-item ", "\"\n    onclick=", ">\n    ", "\n    <svg class=\"icon\">\n      ", "\n    </svg>\n    ", "\n  </li>\n  "], classVariants$2(spell, timer), function (e) { return handleClick$1(e, spell, timer, actions); }, 'cooldown' === timer.state ? Cooldown(timer) : '', Use({ href: ("#svg-" + (spell.id)) }), focused && 'cooldown' === timer.state ? Time(timer) : '')
+}
+
+var selectSpells = function (ennemy, state) { return (
+  select([
+    'spells',
+    $each,
+    $apply(function (spellKey) { return find(['data', 'spells', spellKey], state); }),
+    $merge({ ennemyId: ennemy.id })
+  ], ennemy)
+); }
 
 var SpellList = List(Spell, { className: 'spells' })
 
 var handleClick = function (e, ennemy, actions) {
-  actions.game.toggleFocus(ennemy)
+  actions.ui.track.toggleFocus(ennemy.id)
 }
 
-var classVariants$1 = function (ennemy) { return index$2(( obj = {}, obj["-focused"] = ennemy.focused, obj ))
-  var obj;; }
+var classVariants$1 = function (ennemy, ref) {
+  var focuses = ref.focuses;
 
-var Ennemy = function (ennemy, state, actions) { return html(["\n<li class=\"ennemy-item ", "\"\n  onclick=", ">\n  <div class=\"meta\">\n    <h2 class=\"champion\">", "</h2>\n  </div>\n  ", "\n</li>\n"], classVariants$1(ennemy), function (e) { return handleClick(e, ennemy, actions); }, ennemy.champion.name, SpellList(ennemy.spells, ennemy, actions)); }
+  return index$4({
+  '-focused': focuses[ennemy.id]
+});
+}
+
+var Ennemy = function (ennemy, state, actions) { return html(["\n<li class=\"ennemy-item ", "\"\n  onclick=", ">\n  <div class=\"meta\">\n    <h2 class=\"champion\">", "</h2>\n  </div>\n  ", "\n</li>\n"], classVariants$1(ennemy, state.ui.track), function (e) { return handleClick(e, ennemy, actions); }, ennemy.champion.name, SpellList(selectSpells(ennemy, state), state, actions)); }
 
 var EnnemyList = List(Ennemy, { className: 'ennemies' })
 
-var TrackScreen = function (ref, actions) {
-  var game = ref.game;
-
-  return html(["\n<section class=\"track-screen\">\n  ", "\n</section>\n"], EnnemyList(game.ennemies, null, actions));
-}
+var TrackScreen = function (state, actions) { return html(["\n<section class=\"track-screen\">\n  ", "\n</section>\n"], EnnemyList(state.data.ennemies, state, actions)); }
 
 app({
   state: state,
@@ -7989,7 +9340,7 @@ app({
     ['*', HomeScreen]
   ],
   root: document.querySelector('main'),
-  mixins: [Router, index]
+  mixins: [Logger, Router, index]
 })
 
 document.body.classList.add('-ready')

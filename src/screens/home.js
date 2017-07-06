@@ -10,7 +10,7 @@ const HomeScreen = (state, actions) => html`
 <section class="home-screen">
   ${HomeHeader()}
   ${HomeForm(state, actions)}
-  ${state.app.error ? Error(state.app.error) : ''}
+  ${state.ui.home.error ? Error(state.ui.home.error) : ''}
 </section>
 `
 

@@ -1,20 +1,23 @@
-// Packages
 import store from 'store'
 
-export const app = {
-  loading: false,
-  error: ''
+export const ui = {
+  home: {
+    loading: false,
+    error: ''
+  },
+  track: {
+    focuses: {},
+    timers: {}
+  }
 }
 
-export const user = store.get('cache:user') || {
-  name: '',
-  region: 'EUW',
-  summoner: null
-}
-
-export const game = {
-  id: 0,
+export const data = {
+  user: store.get('cache:user') || {
+    name: '',
+    region: 'EUW',
+    summoner: null
+  },
+  game: null,
   ennemies: [],
-  numCooldowns: 0,
-  intervalId: null
+  spells: {}
 }

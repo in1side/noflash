@@ -10,35 +10,39 @@ export const handleSubmit = (e, user, actions) => {
   e.preventDefault()
 
   if (user.name) {
-    actions.game.fetch()
-      .then(() => actions.router.go('/track'))
-      .catch(err => actions.app.error(err.message))
+    actions.ui.home.load()
+    actions.data.fetch(user)
+      .then(() => {
+        actions.ui.home.loadEnd()
+        actions.router.go('/track')
+      })
+      .catch(err => actions.ui.home.error(err.message))
   }
   else {
-    actions.app.error('Empty summoner name')
+    actions.ui.home.error('Empty summoner name')
   }
 }
 
-const classVariants = (app) => classnames({
-  [`-loading`]: app.loading
+const classVariants = ({ loading }) => classnames({
+  [`-loading`]: loading
 })
 
 const Region = (region, selected) => html`
 <option ${selected ? 'selected' : ''}>${region}</option>
 `
 
-const HomeForm = ({ app, user }, actions) => html`
-<form class="home-form ${classVariants(app)}"
-  onsubmit=${e => handleSubmit(e, user, actions)}>
+const HomeForm = ({ ui, data }, actions) => html`
+<form class="home-form ${classVariants(ui.home)}"
+  onsubmit=${e => handleSubmit(e, data.user, actions)}>
   <fieldset class="fieldset">
     <input class="input"
-      value=${user.name}
+      value=${data.user.name}
       placeholder="Summoner name"
-      ${app.loading ? 'disabled' : ''}
-      oninput=${e => actions.user.update({ name: e.target.value })} />
+      ${ui.home.loading ? 'disabled' : ''}
+      oninput=${e => actions.data.user.setName(e.target.value)} />
     <select class="regions"
-      onchange=${e => actions.user.update({ region: e.target.value })}>
-      ${regions.map(region => Region(region, region === user.region))}
+      onchange=${e => actions.data.user.setRegion(e.target.value)}>
+      ${regions.map(region => Region(region, region === data.user.region))}
     </select>
   </fieldset>
   <button class="submit">Start</button>
