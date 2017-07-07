@@ -1,5 +1,6 @@
 {
   "extends": "ngryman",
+  "parser": "babel-eslint",
   "env": {
     "browser": true
   }

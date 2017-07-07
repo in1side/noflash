@@ -1,6 +1,5 @@
 import champions from 'lol-champions'
 import spells from 'lol-spells'
-import store from 'store'
 import { find, $each } from 'qim'
 
 const proxyUrl = 'https://wt-ngryman-gmail_com-0.run.webtask.io/riot-proxy'
@@ -46,21 +45,18 @@ const request = (url, region) => {
     })
 }
 
-export const fetchSummoner = ({ name, region }) => {
-  const cache = store.get('cache:user')
-  if (cache && cache.name === name && cache.region === region)
-    return Promise.resolve(cache.summoner)
-
+export function fetchSummoner({ name, region }) {
   return request(`${endpoint('summoner', region)}/${name}`, region)
     .then(payload => {
       const summoner = payload[name.toLowerCase().replace(/ /g, '')]
-      if (!summoner)
+      if (!summoner) {
         throw new Error('No summoner found')
-      store.set('cache:user', { name, region, summoner })
+      }
       return summoner
     }, status => {
-      if (status >= 400)
+      if (status >= 400) {
         throw new Error('Unknown summoner')
+      }
     })
 }
 

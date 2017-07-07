@@ -1,24 +1,31 @@
-import { set } from 'qim'
+import { set, update, $set } from 'qim'
 import { fetchSummoner, fetchGame } from '../api'
 
 const data = {
-  fetch: (state, actions, user) => {
-    return fetchSummoner(user)
-      .then(summoner => fetchGame(summoner, user.region))
+  fetch: (state, actions, user) => (
+    Promise.resolve(state.data.user.summoner || fetchSummoner(user))
+      .then(summoner => {
+        actions.data.user.setSummoner(summoner)
+        return fetchGame(summoner, user.region)
+      })
       .then(({ gameId, ennemies, spells }) => {
         actions.data.game.set({ id: gameId })
         actions.data.ennemies.set(ennemies)
         actions.data.spells.set(spells)
       })
-  },
+  ),
 
   user: {
-    setName: (state, actions, userName) => (
-      set(['data', 'user', 'name'], userName, state)
+    setName: (state, actions, name) => (
+      update(['data', 'user', ['name', $set(name)], ['summoner', $set(null)]], state)
     ),
 
-    setRegion: (state, actions, userRegion) => (
-      set(['data', 'user', 'region'], userRegion, state)
+    setRegion: (state, actions, region) => (
+      update(['data', 'user', ['region', $set(region)], ['summoner', $set(null)]], state)
+    ),
+
+    setSummoner: (state, actions, summoner) => (
+      set(['data', 'user', 'summoner'], summoner, state)
     )
   },
 

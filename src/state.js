@@ -1,5 +1,3 @@
-import store from 'store'
-
 export const ui = {
   home: {
     loading: false,
@@ -12,7 +10,7 @@ export const ui = {
 }
 
 export const data = {
-  user: store.get('cache:user') || {
+  user: {
     name: '',
     region: 'EUW',
     summoner: null
