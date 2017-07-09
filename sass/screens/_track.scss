@@ -5,6 +5,7 @@
   background:
     linear-gradient(-45deg, color(background1), rgba(color(background2), .95)),
     url(images/bg.png);
+  background-size: cover;
 
   > .ennemies {
     display: flex;
