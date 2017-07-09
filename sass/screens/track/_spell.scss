@@ -1,4 +1,7 @@
 .spell-item {
+  margin: 0 1.2rem;
+  height: 100%;
+
   @include state(cooldown) {
     position: relative;
   }
@@ -33,6 +36,11 @@
       stroke-width: 1;
     }
   }
+}
+
+.spell-item.-wide {
+  height: 50%;
+  max-height: 6rem;
 
   > .time {
     position: absolute;

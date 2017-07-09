@@ -6,7 +6,7 @@ const EnnemyList = List(Ennemy, { className: 'ennemies' })
 
 const TrackScreen = (state, actions) => html`
 <section class="track-screen">
-  ${EnnemyList(state.data.ennemies, state, actions)}
+  ${EnnemyList(state.data.ennemies, {}, state, actions)}
 </section>
 `
 

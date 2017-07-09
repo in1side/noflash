@@ -82,7 +82,7 @@ const ui = {
 
     startTimer: (state, actions, infos) => {
       attachTimer(actions)
-      return set(['ui', 'track', 'timers', infos.ennemyId, infos.key], {
+      return set(['ui', 'track', 'timers', infos.ennemyId, infos.spellKey], {
         time: infos.cooldown,
         cooldown: infos.cooldown,
         state: 'cooldown'
@@ -91,7 +91,7 @@ const ui = {
 
     forwardTimer: (state, actions, infos) => (
       apply(
-        ['ui', 'track', 'timers', infos.ennemyId, infos.key],
+        ['ui', 'track', 'timers', infos.ennemyId, infos.spellKey],
         timer => updateTimer(timer, infos.delta),
         state
       )

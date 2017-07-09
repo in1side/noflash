@@ -1,16 +1,16 @@
 import classnames from 'classnames'
 import html from '../../util/html'
 import Use from '../../util/use'
-import { find, $pick } from 'qim'
+import { find } from 'qim'
 
-const selectTimer = (spell, state) => (
-  find(['ui', 'track', 'timers', spell.ennemyId, spell.key], state) || {}
+const selectTimer = (ennemyId, spell, state) => (
+  find(['ui', 'track', 'timers', ennemyId, spell.key], state) || {}
 )
 
-const handleClick = (e, spell, timer, actions) => {
+const handleClick = (e, ennemyId, spell, timer, actions) => {
   e.stopPropagation()
 
-  const timerInfos = find([$pick('ennemyId', 'key')], spell)
+  const timerInfos = { ennemyId, spellKey: spell.key }
 
   if ('cooldown' === timer.state) {
     actions.ui.track.forwardTimer({ ...timerInfos, delta: 10 })
@@ -20,9 +20,10 @@ const handleClick = (e, spell, timer, actions) => {
   }
 }
 
-const classVariants = (spell, timer) => classnames({
+const classVariants = (spell, timer, focused) => classnames({
   [`-${spell.id}`]: true,
-  [`-${timer.state}`]: true,
+  [`-${timer.state || 'available'}`]: true,
+  '-wide': focused,
   '-time60': timer.time <= 60 && spell.time > 30,
   '-time30': timer.time <= 30 && spell.time > 0
 })
@@ -57,13 +58,13 @@ const Time = (spell) => {
   `
 }
 
-const Spell = (spell, state, actions) => {
-  const timer = selectTimer(spell, state)
-  const focused = state.ui.track.focuses[spell.ennemyId]
+const Spell = (spell, props, state, actions) => {
+  const timer = selectTimer(props.ennemyId, spell, state)
+  const focused = state.ui.track.focuses[props.ennemyId]
 
   return html`
-  <li class="spell-item ${classVariants(spell, timer)}"
-    onclick=${e => handleClick(e, spell, timer, actions)}>
+  <li class="spell-item ${classVariants(spell, timer, focused)}"
+    onclick=${e => handleClick(e, props.ennemyId, spell, timer, actions)}>
     ${'cooldown' === timer.state ? Cooldown(timer) : ''}
     <svg class="icon">
       ${Use({ href: `#svg-${spell.id}` })}
