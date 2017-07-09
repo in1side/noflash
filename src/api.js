@@ -1,12 +1,19 @@
 import champions from 'lol-champions'
 import spells from 'lol-spells'
-import { find, $each } from 'qim'
+import { find, has, $each } from 'qim'
 
 const proxyUrl = 'https://wt-ngryman-gmail_com-0.run.webtask.io/riot-proxy'
 
+const INSIGHT_MASTERY_ID = 6242
+
 let nextEnnemyId = 0
 
-function createEnnemy(participant) {
+function createEnemy(participant) {
+  let cdr = 0
+  if (has(['masteries', $each, ({ masteryId }) => masteryId === INSIGHT_MASTERY_ID], participant)) {
+    cdr = 0.15
+  }
+
   return {
     id: nextEnnemyId++,
     name: participant.summonerName,
@@ -14,9 +21,10 @@ function createEnnemy(participant) {
       [$each, champion => champion.key === String(participant.championId)],
       champions
     ),
+    cdr,
     spells: [
-      participant.spell1Id,
-      participant.spell2Id
+      { key: participant.spell1Id },
+      { key: participant.spell2Id }
     ]
   }
 }
@@ -73,9 +81,9 @@ export const fetchGame = (summoner, region) => {
         summoner.name === participant.summonerName
       ).teamId
 
-      const ennemies = participants
+      const enemies = participants
         .filter(participant => participant.teamId !== summonerTeam)
-        .map(createEnnemy)
+        .map(createEnemy)
 
       const spellsHash = spells.reduce((hash, spell) => {
         spell.key = Number(spell.key)
@@ -83,7 +91,7 @@ export const fetchGame = (summoner, region) => {
         return hash
       }, {})
 
-      return { gameId, ennemies, spells: spellsHash }
+      return { gameId, enemies, spells: spellsHash }
     }, status => {
       if (status >= 400) {
         throw new Error('No live game found')
