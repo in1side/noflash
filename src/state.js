@@ -1,7 +1,8 @@
 export const ui = {
   home: {
     loading: false,
-    error: ''
+    error: '',
+    errorTimeout: null
   },
   track: {
     focuses: {},

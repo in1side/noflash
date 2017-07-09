@@ -45,17 +45,34 @@ function updateTimer(timer, delta) {
 
 const ui = {
   home: {
-    load: (state, actions) => (
-      update(['ui', 'home', $merge({ loading: true, error: '' })], state)
-    ),
+    load: (state, actions) => {
+      actions.ui.home.clearError()
+      return set(['ui', 'home', 'loading'], true, state)
+    },
 
     loadEnd: (state, actions) => (
       set(['ui', 'home', 'loading'], false, state)
     ),
 
-    error: (state, actions, message) => (
-      update(['ui', 'home', $merge({ loading: false, error: message })], state)
-    )
+    error: (state, actions, message) => {
+      actions.ui.home.clearError()
+      return update([
+        'ui', 'home',
+        $merge({
+          loading: false,
+          error: message,
+          errorTimeout: setTimeout(actions.ui.home.clearError, 3000)
+        })
+      ], state)
+    },
+
+    clearError: (state) => {
+      clearTimeout(state.ui.home.errorTimeout)
+      return update(['ui', 'home', $merge({
+        error: '',
+        errorTimeout: null
+      })], state)
+    }
   },
 
   track: {
