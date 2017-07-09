@@ -13,7 +13,6 @@ app({
     ['/track', TrackScreen],
     ['*', HomeScreen]
   ],
-  root: document.querySelector('main'),
   mixins: [Logger, Router, Persist]
 })
 
