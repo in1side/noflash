@@ -7,7 +7,7 @@
     "watch:bundle": "yarn bundle -- --watch",
     "watch:sass": "yarn sass -- --watch",
     "serve": "browser-sync start --config bs.config.js",
-    "start": "run-p watch:bundle watch:sass serve",
+    "start": "run-p watch:* serve",
     "setup": "node run.js setup",
     "android": "node run.js android",
     "ios": "node run.js ios"
