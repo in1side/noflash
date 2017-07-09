@@ -2,6 +2,8 @@ import champions from 'lol-champions'
 import spells from 'lol-spells'
 import { find, has, $each } from 'qim'
 
+import positions from './positions.json'
+
 const proxyUrl = 'https://wt-ngryman-gmail_com-0.run.webtask.io/riot-proxy'
 
 const INSIGHT_MASTERY_ID = 6242
@@ -28,6 +30,11 @@ function createEnemy(participant) {
     ]
   }
 }
+
+const ennemiesSorter = (enemy1, enemy2) => (
+  find([$each, posInfos => String(posInfos.key) === enemy1.champion.key], positions) -
+  find([$each, posInfos => String(posInfos.key) === enemy2.champion.key], positions)
+)
 
 const endpoint = (type, region) => {
   switch (type) {
@@ -84,6 +91,7 @@ export const fetchGame = (summoner, region) => {
       const enemies = participants
         .filter(participant => participant.teamId !== summonerTeam)
         .map(createEnemy)
+        .sort(ennemiesSorter)
 
       const spellsHash = spells.reduce((hash, spell) => {
         spell.key = Number(spell.key)
