@@ -8,9 +8,9 @@ const data = {
         actions.data.user.setSummoner(summoner)
         return fetchGame(summoner, user.region)
       })
-      .then(({ gameId, ennemies, spells }) => {
+      .then(({ gameId, enemies, spells }) => {
         actions.data.game.set({ id: gameId })
-        actions.data.ennemies.set(ennemies)
+        actions.data.enemies.set(enemies)
         actions.data.spells.set(spells)
       })
   ),
@@ -35,9 +35,9 @@ const data = {
     )
   },
 
-  ennemies: {
-    set: (state, actions, ennemies) => (
-      set(['data', 'ennemies'], ennemies, state)
+  enemies: {
+    set: (state, actions, enemies) => (
+      set(['data', 'enemies'], enemies, state)
     )
   },
 

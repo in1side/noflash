@@ -7,13 +7,13 @@
     url(images/bg.png);
   background-size: cover;
 
-  > .ennemies {
+  > .enemies {
     display: flex;
     flex-direction: column;
     flex: 1;
   }
 
-  > .ennemies > .ennemy-item {
+  > .enemies > .enemy-item {
     flex: 1;
 
     @include state(focused, true) {

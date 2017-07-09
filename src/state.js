@@ -17,6 +17,6 @@ export const data = {
     summoner: null
   },
   game: null,
-  ennemies: [],
+  enemies: [],
   spells: {}
 }

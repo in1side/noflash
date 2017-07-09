@@ -1,8 +1,8 @@
 import html from '../util/html'
 import List from '../hocs/list'
-import Ennemy from './track/ennemy'
+import enemy from './track/enemy'
 
-const EnnemyList = List(Ennemy, { className: 'ennemies' })
+const EnemyList = List(enemy, { className: 'enemies' })
 
 const handleLeave = (actions) => {
   actions.ui.track.clearTimers()
@@ -10,7 +10,7 @@ const handleLeave = (actions) => {
 
 const TrackScreen = (state, actions) => html`
 <section class="track-screen" onleave=${() => handleLeave(actions)}>
-  ${EnnemyList(state.data.ennemies, {}, state, actions)}
+  ${EnemyList(state.data.enemies, {}, state, actions)}
 </section>
 `
 
