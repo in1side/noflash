@@ -99,7 +99,7 @@ const ui = {
 
     clearTimers: (state, actions) => {
       detachAllTimers()
-      return set(['ui', 'track', 'timers'], {})
+      return set(['ui', 'track', 'timers'], {}, state)
     },
 
     tick: (state, actions) => (
