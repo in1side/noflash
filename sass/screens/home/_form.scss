@@ -1,5 +1,3 @@
-@import '../../colors';
-
 .home-form {
   opacity: 0;
 
@@ -41,16 +39,16 @@
     box-shadow: 0 2px 4px #333;
     width: 100%;
     height: 4.5rem;
-    background: color-get(primary);
+    background: color(primary);
     font-family: inherit;
     font-size: 1.6rem;
     text-transform: uppercase;
-    color: desaturate(darken(color-get(primary), 30), 0);
+    color: desaturate(darken(color(primary), 30), 0);
 
     @include state(loading) {
       border-radius: 50%;
       border: 3px solid transparent;
-      border-top-color: color-get(primary);
+      border-top-color: color(primary);
       box-shadow: none;
       width: 4.5rem;
       background: transparent;

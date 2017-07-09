@@ -6,14 +6,14 @@
   > .icon {
     width: 100%;
     height: 100%;
-    stroke: color-get(highlight);
+    stroke: color(highlight);
     stroke-width: 2;
     fill: none;
     opacity: 1;
 
     @include state(cooldown) {
       transform: scale(.6);
-      stroke: color-get(primary);
+      stroke: color(primary);
     }
   }
 
@@ -23,12 +23,12 @@
     fill: none;
 
     .progress {
-      stroke: color-get(primary);
+      stroke: color(primary);
       stroke-width: 6;
     }
 
     .progress-bg {
-      stroke: color-get(highlight);
+      stroke: color(highlight);
       stroke-opacity: .3;
       stroke-width: 1;
     }
@@ -40,6 +40,6 @@
     left: 50%;
     transform: translateX(-50%);
     font-size: 2rem;
-    color: color-get(primary);
+    color: color(primary);
   }
 }

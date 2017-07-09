@@ -7,6 +7,6 @@ $colors: (
   error: #E4152E
 );
 
-@function color-get($color) {
+@function color($color) {
   @return map-get($colors, $color);
 }

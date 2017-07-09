@@ -7,6 +7,12 @@
 @import 'fonts';
 @import 'normalize';
 
+/** Components */
+@import 'screens/home/form';
+@import 'screens/home/header';
+@import 'screens/track/ennemy';
+@import 'screens/track/spell';
+
 /** Screens */
 @import 'screens/home';
 @import 'screens/track';
