@@ -8,7 +8,7 @@ const proxyUrl = 'https://wt-ngryman-gmail_com-0.run.webtask.io/riot-proxy'
 
 const INSIGHT_MASTERY_ID = 6242
 
-let nextEnnemyId = 0
+let nextEnemyId = 0
 
 function createEnemy(participant) {
   let cdr = 0
@@ -17,7 +17,7 @@ function createEnemy(participant) {
   }
 
   return {
-    id: nextEnnemyId++,
+    id: nextEnemyId++,
     name: participant.summonerName,
     champion: find(
       [$each, champion => champion.key === String(participant.championId)],
