@@ -12,15 +12,11 @@
   <access origin="*"></access>
 
   <plugin name="cordova-plugin-device" />
-  <plugin name="cordova-plugin-headercolor" />
   <plugin name="cordova-plugin-insomnia" />
-  <plugin name="cordova-plugin-statusbar" />
   <plugin name="cordova-plugin-whitelist" />
 
   <preference name="orientation" value="portrait" />
-  <preference name="HeaderColor" value="#1f3f54" />
-  <preference name="StatusBarOverlaysWebView" value="true" />
-  <preference name="StatusBarBackgroundColor" value="#1f3f54" />
+  <preference name="fullscreen" value="true" />
 
   <platform name="ios" />
 
