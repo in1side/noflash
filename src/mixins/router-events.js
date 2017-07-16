@@ -18,7 +18,7 @@ export const RouterEvents = (app) => ({
       if (prevLocation) {
         process('leave', prevLocation, emit)
       }
-      process('enter', location, emit)
+      setTimeout(() => process('enter', location, emit))
       prevLocation = location
     }
   }
