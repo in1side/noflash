@@ -16,7 +16,6 @@ const handleClick = (e, enemyId, spell, timer, actions) => {
     actions.ui.track.forwardTimer({ ...timerInfos, delta: 10 })
   }
   else {
-    console.log(timerInfos)
     actions.ui.track.startTimer({ ...timerInfos, cooldown: spell.cooldown })
   }
 }

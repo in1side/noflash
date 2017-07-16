@@ -2,7 +2,7 @@ import buble from 'rollup-plugin-buble'
 import commonjs from 'rollup-plugin-commonjs'
 import json from 'rollup-plugin-json'
 import resolve from 'rollup-plugin-node-resolve'
-import uglify from 'rollup-plugin-uglify'
+// import uglify from 'rollup-plugin-uglify'
 
 /*
   Waiting https://github.com/differui/rollup-plugin-sass/issues/29
@@ -11,7 +11,7 @@ import uglify from 'rollup-plugin-uglify'
 export default {
   entry: 'src/index.js',
   targets: [{
-    dest: 'build/www/index.js',
+    dest: 'build/index.js',
     format: 'iife',
     sourceMap: true
   }],

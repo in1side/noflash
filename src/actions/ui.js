@@ -16,14 +16,14 @@ function attachTimer(actions) {
 
 function detachTimer() {
   totalTimers--
-  if (totalTimers <= 0) {
+  if (0 === totalTimers) {
     clearInterval(intervalId)
     intervalId = null
   }
 }
 
 function detachAllTimers() {
-  totalTimers = 0
+  totalTimers = 1
   detachTimer()
 }
 
@@ -56,14 +56,11 @@ const ui = {
 
     error: (state, actions, message) => {
       actions.ui.home.clearError()
-      return update([
-        'ui', 'home',
-        $merge({
-          loading: false,
-          error: message,
-          errorTimeout: setTimeout(actions.ui.home.clearError, 3000)
-        })
-      ], state)
+      return update(['ui', 'home', $merge({
+        loading: false,
+        error: message,
+        errorTimeout: setTimeout(actions.ui.home.clearError, 3000)
+      })], state)
     },
 
     clearError: (state) => {

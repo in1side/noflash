@@ -3,9 +3,25 @@
   flex-direction: column;
   padding: .7rem;
   background:
-    linear-gradient(-45deg, color(background1), rgba(color(background2), .95)),
-    url(images/bg.png);
-  background-size: cover;
+    linear-gradient(-45deg, color(background1), rgba(color(background2), .95));
+
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    transform-origin: top center;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url(images/bg.png);
+    background-size: cover;
+    backface-visibility: hidden;
+
+    @include nested-state(ready) {
+      animation: track-screen-appear 1s both;
+    }
+  }
 
   > .enemies {
     display: flex;
@@ -15,9 +31,39 @@
 
   > .enemies > .enemy-item {
     flex: 1;
+    animation: track-enemies-appear 1s both;
+
+    @for $i from 1 through 5 {
+      &:nth-child(#{$i}) {
+        animation-delay: $i * 100ms;
+      }
+    }
 
     @include state(focused, true) {
       flex: 5;
     }
+  }
+}
+
+@keyframes track-screen-appear {
+  from {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes track-enemies-appear {
+  from {
+    transform: translate3d(0, 20%, 0);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
   }
 }

@@ -7,14 +7,33 @@ import * as state from './state'
 import * as actions from './actions'
 import { HomeScreen, TrackScreen } from './screens'
 
-app({
-  state,
-  actions,
-  view: [
-    Route('/track', TrackScreen),
-    Route('*', HomeScreen)
-  ],
-  mixins: [Logger, Router, RouterEvents, Persist]
-})
+function bootstrap() {
+  app({
+    state,
+    actions,
+    view: [
+      Route('/track', TrackScreen),
+      Route('*', HomeScreen)
+    ],
+    events: {
+      loaded: () => {
+        const { body } = document
 
-document.body.classList.add('-ready')
+        body.classList.add('-ready')
+
+        body.addEventListener('keyboardshown', e => {
+          body.classList.add('-keyboard')
+          body.style.paddingBottom = e.detail.offset + 'px'
+        })
+
+        body.addEventListener('keyboardhidden', () => {
+          body.classList.remove('-keyboard')
+          body.style.paddingBottom = 0
+        })
+      }
+    },
+    mixins: [Router, Logger, RouterEvents, Persist]
+  })
+}
+
+bootstrap()

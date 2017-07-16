@@ -6,7 +6,7 @@ const regions = [
   'BR', 'EUNE', 'EUW', 'JP', 'KR', 'LAN', 'LAS', 'NA', 'OCE', 'PBE', 'RU', 'TR'
 ]
 
-export const handleSubmit = (e, user, actions) => {
+const handleSubmit = (e, user, actions) => {
   e.preventDefault()
 
   if (user.name) {
@@ -24,7 +24,7 @@ export const handleSubmit = (e, user, actions) => {
 }
 
 const classVariants = ({ loading }) => classnames({
-  [`-loading`]: loading
+  ['-loading']: loading
 })
 
 const Region = (region, selected) => html`

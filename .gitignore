@@ -2,8 +2,7 @@
 .nyc_output
 .todo
 coverage
-build/plugins
-build/platforms
+build/
 
 # node
 node_modules

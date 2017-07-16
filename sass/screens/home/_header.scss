@@ -10,8 +10,9 @@
     stroke-width: 3px;
     stroke-dasharray: 390;
     backface-visibility: hidden;
+    opacity: 0;
 
-    .-ready & {
+    @include nested-state(ready) {
       animation: home-header-logo-appear 800ms linear both 600ms;
     }
   }
@@ -22,8 +23,9 @@
     font-weight: 100;
     color: #fff;
     backface-visibility: hidden;
+    opacity: 0;
 
-    .-ready & {
+    @include nested-state(ready) {
       animation: home-header-title-appear 800ms both 800ms;
     }
   }

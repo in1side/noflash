@@ -2,23 +2,24 @@
   display: flex;
   flex-direction: column;
   padding: 1.4rem;
-  background:
-    radial-gradient(rgba(13, 236, 240, .2), rgba(240, 13, 230, .1)),
-    linear-gradient(rgba(42, 48, 90, .95), rgba(0, 0, 0, .98));
 
-  &::before {
-    content: '';
-    position: absolute;
+  @include before() {
     z-index: -1;
     transform-origin: top center;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
     background: url(images/bg.png);
     background-size: cover;
     backface-visibility: hidden;
-    animation: home-page-appear 1s both;
+
+    @include nested-state(ready) {
+      animation: home-screen-appear 1s both;
+    }
+  }
+
+  @include after() {
+    z-index: -1;
+    background:
+      radial-gradient(rgba(13, 236, 240, .2), rgba(240, 13, 230, .1)),
+      linear-gradient(rgba(42, 48, 90, .95), rgba(0, 0, 0, .98));
   }
 
   > .home-header {
@@ -26,7 +27,7 @@
   }
 
   > .error {
-    @include fixed($height: 3.25rem);
+    @include fixed($height: 4rem);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -37,7 +38,7 @@
   }
 }
 
-@keyframes home-page-appear {
+@keyframes home-screen-appear {
   from {
     transform: scale(1.3);
     opacity: 0;
