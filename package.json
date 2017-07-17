@@ -1,5 +1,6 @@
 {
   "private": true,
+  "version": "0.3.0",
   "scripts": {
     "bundle": "rollup --config rollup.config.js",
     "sass": "node-sass sass/index.scss build/index.css --include-path node_modules",
