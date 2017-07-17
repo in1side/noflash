@@ -4,12 +4,10 @@ import android.content.Context;
 import android.media.MediaPlayer;
 import android.webkit.JavascriptInterface;
 
-public class NoFlashInterface {
-	private Context context;
+class NoFlashInterface {
 	private MediaPlayer spellSound;
 
-	NoFlashInterface(Context c) {
-		context = c;
+	NoFlashInterface(Context context) {
 		spellSound = MediaPlayer.create(context, R.raw.spell);
 	}
 
