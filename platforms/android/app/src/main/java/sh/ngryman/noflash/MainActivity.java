@@ -3,6 +3,7 @@ package sh.ngryman.noflash;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.Rect;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -34,6 +35,7 @@ public class MainActivity extends Activity {
 		settings.setDatabaseEnabled(true);
 		settings.setAllowUniversalAccessFromFileURLs(true);
 
+		webView.addJavascriptInterface(new NoFlashInterface(this), "Native");
 		webView.loadUrl("file:///android_asset/index.html");
 	}
 

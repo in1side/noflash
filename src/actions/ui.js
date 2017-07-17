@@ -1,7 +1,5 @@
 import { apply, set, update, $eachPair, $merge } from 'qim'
 
-const spellAudio = new Audio('sounds/spell.ogg')
-
 let intervalId = null
 let totalTimers = 0
 
@@ -37,7 +35,10 @@ function updateTimer(timer, delta) {
     timer.state = 'available'
 
     detachTimer()
-    spellAudio.play()
+
+    if (window.Native) {
+      window.Native.notifyAvailableSpell()
+    }
   }
 
   return timer
