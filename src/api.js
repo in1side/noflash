@@ -4,26 +4,11 @@ import { find, has, select, $apply, $each } from 'qim'
 
 import POSITIONS from './positions.json'
 
-const PROXY_URL = 'https://wt-ngryman-gmail_com-0.run.webtask.io/riot-proxy'
+const PROXY_URL = 'https://noflash-proxy.herokuapp.com'
 
 const INSIGHT_MASTERY_ID = 6242
 
 let nextEnemyId = 0
-
-const getPlatform = (region) => ({
-  BR: 'BR1',
-  EUNE: 'EUN1',
-  EUW: 'EUW1',
-  JP: 'JP1',
-  KR: 'KR',
-  LAN: 'LAN',
-  LAS: 'LAS',
-  NA: 'NA1',
-  OCE: 'OC1',
-  TR: 'TR1',
-  RU: 'RU',
-  PBE: 'PBE1'
-}[region])
 
 function createEnemy(participant) {
   let cdr = 0
@@ -51,17 +36,8 @@ const ennemiesSorter = (enemy1, enemy2) => (
   find([$each, posInfos => String(posInfos.key) === enemy2.champion.key, 'role'], POSITIONS)
 )
 
-const endpoint = (type, region) => {
-  switch (type) {
-    case 'summoner':
-      return `/api/lol/${region}/v1.4/summoner/by-name`
-    case 'game':
-      return `/observer-mode/rest/consumer/getSpectatorGameInfo/${getPlatform(region)}`
-  }
-}
-
-const request = (url, region) => {
-  return fetch(`${PROXY_URL}?url=${url}&region=${region}`)
+const request = (type, param, region) => {
+  return fetch(`${PROXY_URL}?type=${type}&param=${param}&region=${region}`)
     .then(res => {
       if (res.ok) {
         return res
@@ -76,22 +52,19 @@ const request = (url, region) => {
 }
 
 export function fetchSummoner({ name, region }) {
-  return request(`${endpoint('summoner', region)}/${name}`, region)
-    .then(payload => {
-      const summoner = payload[name.toLowerCase().replace(/ /g, '')]
-      if (!summoner) {
-        throw new Error('No summoner found')
+  return request('summoner', name, region)
+    .then(
+      payload => payload,
+      status => {
+        if (status >= 400) {
+          throw new Error('Unknown summoner')
+        }
       }
-      return summoner
-    }, status => {
-      if (status >= 400) {
-        throw new Error('Unknown summoner')
-      }
-    })
+    )
 }
 
 export const fetchGame = (summoner, region) => {
-  return request(`${endpoint('game', region)}/${summoner.id}`, region)
+  return request('game', summoner.id, region)
     .then(payload => {
       if ('CLASSIC' !== payload.gameMode || 'MATCHED_GAME' !== payload.gameType) {
         throw new Error('Game mode not supported')

@@ -3,7 +3,7 @@ import classnames from 'classnames'
 import html from '../../util/html'
 
 const regions = [
-  'BR', 'EUNE', 'EUW', 'JP', 'KR', 'LAN', 'LAS', 'NA', 'OCE', 'PBE', 'RU', 'SEA', 'TR'
+  'br', 'eune', 'euw', 'jp', 'kr', 'lan', 'las', 'na', 'oce', 'pbe', 'ru', 'tr'
 ]
 
 const handleSubmit = (e, user, actions) => {
