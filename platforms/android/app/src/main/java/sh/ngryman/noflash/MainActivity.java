@@ -3,8 +3,6 @@ package sh.ngryman.noflash;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.Rect;
-import android.media.MediaPlayer;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.KeyEvent;
@@ -93,12 +91,7 @@ public class MainActivity extends Activity {
 			"var event = new CustomEvent('" + eventName + "', { detail: " + detail.toString() + " });" +
 			"document.body.dispatchEvent(event);";
 
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-			webView.evaluateJavascript(source, null);
-		}
-		else {
-			webView.loadUrl("javascript:" + source);
-		}
+		webView.evaluateJavascript(source, null);
 	}
 
 	public void setFullscreen(boolean toggle) {
