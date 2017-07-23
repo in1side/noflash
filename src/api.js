@@ -1,10 +1,10 @@
 import champions from 'lol-champions'
 import spells from 'lol-spells'
-import { find, has, $each } from 'qim'
+import { find, has, select, $apply, $each } from 'qim'
 
-import positions from './positions.json'
+import POSITIONS from './positions.json'
 
-const proxyUrl = 'https://wt-ngryman-gmail_com-0.run.webtask.io/riot-proxy'
+const PROXY_URL = 'https://wt-ngryman-gmail_com-0.run.webtask.io/riot-proxy'
 
 const INSIGHT_MASTERY_ID = 6242
 
@@ -47,8 +47,8 @@ function createEnemy(participant) {
 }
 
 const ennemiesSorter = (enemy1, enemy2) => (
-  find([$each, posInfos => String(posInfos.key) === enemy1.champion.key], positions) -
-  find([$each, posInfos => String(posInfos.key) === enemy2.champion.key], positions)
+  find([$each, posInfos => String(posInfos.key) === enemy1.champion.key, 'role'], POSITIONS) -
+  find([$each, posInfos => String(posInfos.key) === enemy2.champion.key, 'role'], POSITIONS)
 )
 
 const endpoint = (type, region) => {
@@ -61,7 +61,7 @@ const endpoint = (type, region) => {
 }
 
 const request = (url, region) => {
-  return fetch(`${proxyUrl}?url=${url}&region=${region}`)
+  return fetch(`${PROXY_URL}?url=${url}&region=${region}`)
     .then(res => {
       if (res.ok) {
         return res
@@ -99,14 +99,15 @@ export const fetchGame = (summoner, region) => {
 
       const { gameId, participants } = payload
 
-      const summonerTeam = participants.find(participant =>
+      const summonerTeam = find([$each, participant =>
         summoner.name === participant.summonerName
-      ).teamId
+      ], participants)
 
-      const enemies = participants
-        .filter(participant => participant.teamId !== summonerTeam)
-        .map(createEnemy)
-        .sort(ennemiesSorter)
+      const enemies = select([
+        $each,
+        participant => participant.teamId !== summonerTeam.teamId,
+        $apply(createEnemy)
+      ], participants)
 
       const spellsHash = spells.reduce((hash, spell) => {
         spell.key = Number(spell.key)
@@ -114,7 +115,11 @@ export const fetchGame = (summoner, region) => {
         return hash
       }, {})
 
-      return { gameId, enemies, spells: spellsHash }
+      return {
+        gameId,
+        enemies: enemies.sort(ennemiesSorter),
+        spells: spellsHash
+      }
     }, status => {
       if (status >= 400) {
         throw new Error('No live game found')
