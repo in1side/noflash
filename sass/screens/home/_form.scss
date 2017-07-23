@@ -2,7 +2,7 @@
   opacity: 0;
 
   @include nested-state(ready) {
-    animation: home-form-appear 1s forwards 1.2s;
+    -webkit-animation: home-form-appear 1s forwards 1.2s;
   }
 
   > .fieldset {
@@ -53,18 +53,18 @@
       width: 4.5rem;
       background: transparent;
       color: transparent;
-      animation: home-form-loading 1s linear infinite;
+      -webkit-animation: home-form-loading 1s linear infinite;
     }
   }
 }
 
-@keyframes home-form-loading {
+@-webkit-keyframes home-form-loading {
   to {
     transform: rotate(360deg);
   }
 }
 
-@keyframes home-form-appear {
+@-webkit-keyframes home-form-appear {
   to {
     transform: none;
     opacity: 1;

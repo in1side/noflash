@@ -13,7 +13,7 @@
     opacity: 0;
 
     @include nested-state(ready) {
-      animation: home-header-logo-appear 800ms linear both 600ms;
+      -webkit-animation: home-header-logo-appear 800ms linear both 600ms;
     }
   }
 
@@ -26,12 +26,12 @@
     opacity: 0;
 
     @include nested-state(ready) {
-      animation: home-header-title-appear 800ms both 800ms;
+      -webkit-animation: home-header-title-appear 800ms both 800ms;
     }
   }
 }
 
-@keyframes home-header-logo-appear {
+@-webkit-keyframes home-header-logo-appear {
   from {
     stroke-dashoffset: 390;
     opacity: 0;
@@ -43,7 +43,7 @@
   }
 }
 
-@keyframes home-header-title-appear {
+@-webkit-keyframes home-header-title-appear {
   from {
     transform: translateY(1rem) scale(1.2);
     opacity: 0;

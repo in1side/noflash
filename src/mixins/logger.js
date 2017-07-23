@@ -1,7 +1,7 @@
 const Logger = () => ({
   events: {
     action: (state, actions, data) => {
-      if (!data.name.startsWith('_')) {
+      if ('_' !== data.name[0]) {
         console.groupCollapsed(data.name)
         console.log('%caction', 'color: blue', data.data)
         console.log('%cstate', 'color: green', state)
