@@ -10,6 +10,21 @@ const INSIGHT_MASTERY_ID = 6242
 
 let nextEnemyId = 0
 
+const getPlatform = (region) => ({
+  BR: 'BR1',
+  EUNE: 'EUN1',
+  EUW: 'EUW1',
+  JP: 'JP1',
+  KR: 'KR',
+  LAN: 'LAN',
+  LAS: 'LAS',
+  NA: 'NA1',
+  OCE: 'OC1',
+  TR: 'TR1',
+  RU: 'RU',
+  PBE: 'PBE1'
+}[region])
+
 function createEnemy(participant) {
   let cdr = 0
   if (has(['masteries', $each, ({ masteryId }) => masteryId === INSIGHT_MASTERY_ID], participant)) {
@@ -41,7 +56,7 @@ const endpoint = (type, region) => {
     case 'summoner':
       return `/api/lol/${region}/v1.4/summoner/by-name`
     case 'game':
-      return `/observer-mode/rest/consumer/getSpectatorGameInfo/${region}1`
+      return `/observer-mode/rest/consumer/getSpectatorGameInfo/${getPlatform(region)}`
   }
 }
 
