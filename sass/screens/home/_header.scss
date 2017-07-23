@@ -14,7 +14,7 @@
     opacity: 0;
 
     @include nested-state(ready) {
-      -webkit-animation: home-header-logo-appear 800ms linear both 600ms;
+      animation: home-header-logo-appear 800ms linear both 600ms;
     }
   }
 
@@ -27,7 +27,7 @@
     opacity: 0;
 
     @include nested-state(ready) {
-      -webkit-animation: home-header-title-appear 800ms both 800ms;
+      animation: home-header-title-appear 800ms both 800ms;
     }
   }
 
@@ -41,7 +41,7 @@
     font-size: 1.2rem;
     font-weight: 400;
     text-align: center;
-    -webkit-animation: home-header-error-appear 300ms both;
+    animation: home-header-error-appear 300ms both;
 
     > b {
       display: block;
@@ -56,7 +56,7 @@
   }
 }
 
-@-webkit-keyframes home-header-logo-appear {
+@keyframes home-header-logo-appear {
   from {
     stroke-dashoffset: 390;
     opacity: 0;
@@ -68,7 +68,7 @@
   }
 }
 
-@-webkit-keyframes home-header-title-appear {
+@keyframes home-header-title-appear {
   from {
     transform: translateY(1rem) scale(1.2);
     opacity: 0;
@@ -80,7 +80,7 @@
   }
 }
 
-@-webkit-keyframes home-header-error-appear {
+@keyframes home-header-error-appear {
   from {
     transform: translateY(-50%) scaleY(0.01);
     opacity: 0;
