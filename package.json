@@ -4,7 +4,8 @@
   "scripts": {
     "bundle": "rollup --config rollup.config.js",
     "sass": "node-sass sass/index.scss build/index.css --include-path node_modules",
-    "prefix": "postcss --use autoprefixer --autoprefixer.browsers 'Android >= 5' build/index.css -d build",
+    "sass:min": "node-sass sass/index.scss build/index.css --include-path node_modules --output-style compressed",
+    "prefix": "postcss --use autoprefixer --autoprefixer.browsers 'Android >= 5' build/index.css -d build --no-map",
     "assets": "cp -r assets/* build",
     "watch:bundle": "yarn bundle -- --watch",
     "watch:sass": "yarn sass -- --watch",
