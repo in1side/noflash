@@ -25,17 +25,6 @@
   > .home-header {
     flex: 1;
   }
-
-  > .error {
-    @include fixed($height: 4rem);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: rgba(color(error), .8);
-    color: lighten(color(error), 25);
-    font-size: 1.2rem;
-    font-weight: 400;
-  }
 }
 
 @-webkit-keyframes home-screen-appear {

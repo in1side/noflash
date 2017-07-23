@@ -60,7 +60,7 @@ const ui = {
       return update(['ui', 'home', $merge({
         loading: false,
         error: message,
-        errorTimeout: setTimeout(actions.ui.home.clearError, 3000)
+        errorTimeout: setTimeout(actions.ui.home.clearError, 4000)
       })], state)
     },
 

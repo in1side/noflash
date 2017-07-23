@@ -1,4 +1,5 @@
 .home-header {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -29,6 +30,30 @@
       -webkit-animation: home-header-title-appear 800ms both 800ms;
     }
   }
+
+  > .error {
+    @include absolute($top: 50%, $left: -1.4rem, $right: -1.4rem, $width: auto, $height: auto);
+    transform: translateY(-50%);
+    box-shadow: 0 0 10rem #000;
+    padding: 2.8rem 1.4rem;
+    background: rgba(color(error), 0.95);
+    color: lighten(color(error), 35);
+    font-size: 1.2rem;
+    font-weight: 400;
+    text-align: center;
+    -webkit-animation: home-header-error-appear 300ms both;
+
+    > b {
+      display: block;
+      font-size: 120%;
+    }
+
+    > em {
+      display: block;
+      padding: 2.8rem 1.4rem 1.4rem;
+      font-style: normal;
+    }
+  }
 }
 
 @-webkit-keyframes home-header-logo-appear {
@@ -52,5 +77,12 @@
   to {
     transform: none;
     opacity: 1;
+  }
+}
+
+@-webkit-keyframes home-header-error-appear {
+  from {
+    transform: translateY(-50%) scaleY(0.01);
+    opacity: 0;
   }
 }
