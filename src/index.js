@@ -1,3 +1,5 @@
+import 'whatwg-fetch'
+
 import { app, Router } from 'hyperapp'
 
 import Logger from './mixins/logger'
@@ -32,7 +34,12 @@ function bootstrap() {
         })
       }
     },
-    mixins: [Router, Logger, RouterEvents, Persist]
+    mixins: [
+      Router,
+      'production' !== process.env.NODE_ENV && Logger,
+      RouterEvents,
+      Persist
+    ].filter(Boolean)
   })
 }
 

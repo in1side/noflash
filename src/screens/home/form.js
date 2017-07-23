@@ -16,7 +16,12 @@ const handleSubmit = (e, user, actions) => {
         actions.ui.home.loadEnd()
         actions.router.go('/track')
       })
-      .catch(err => actions.ui.home.error(err.message))
+      .catch(err => {
+        actions.ui.home.error(err.message)
+        if ('development' === process.env.NODE_ENV) {
+          console.log(err)
+        }
+      })
   }
   else {
     actions.ui.home.error('Empty summoner name')
