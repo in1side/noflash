@@ -33,7 +33,7 @@
     "cordova-lib": "^7.0.1",
     "eslint": "^4.2.0",
     "eslint-config-ngryman": "^1.7.1",
-    "execa": "^0.7.0",
+    "execa": "^0.8.0",
     "node-sass": "^4.5.2",
     "npm-run-all": "^4.0.2",
     "postcss-cli": "^4.1.0",
